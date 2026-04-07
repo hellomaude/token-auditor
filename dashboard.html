@@ -1,0 +1,2017 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token Auditor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --border: rgba(0,0,0,0.06);
+    --border-strong: rgba(0,0,0,0.1);
+    --text: #1a1a1a;
+    --text-secondary: #6b6b6b;
+    --text-tertiary: #9a9a9a;
+    --accent: #e85d26;
+    --accent-soft: #fff0eb;
+    --teal: #0d9488;
+    --teal-soft: #ecfdf5;
+    --rose: #e11d48;
+    --rose-soft: #fff1f2;
+    --amber: #d97706;
+    --amber-soft: #fffbeb;
+    --indigo: #6366f1;
+    --indigo-soft: #eef2ff;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.03);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+    --shadow-glow: 0 0 40px rgba(232,93,38,0.08);
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --logo-blend: normal;
+    --logo-bg: transparent;
+  }
+
+  html[data-theme="dark"] {
+    --bg: #0b0b0f;
+    --surface: #14141a;
+    --surface-raised: #1a1a22;
+    --border: rgba(255,255,255,0.06);
+    --border-strong: rgba(255,255,255,0.12);
+    --text: #f0f0f2;
+    --text-secondary: #a0a0a8;
+    --text-tertiary: #666670;
+    --accent-soft: rgba(232,93,38,0.12);
+    --teal-soft: rgba(13,148,136,0.15);
+    --rose-soft: rgba(225,29,72,0.12);
+    --amber-soft: rgba(217,119,6,0.15);
+    --indigo-soft: rgba(99,102,241,0.15);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+    --logo-blend: screen;
+    --logo-bg: #000;
+  }
+
+  html[data-theme="dark"] body::after { opacity: 0.015 !important; }
+
+  /* Logo */
+  .logo-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 12px 0;
+  }
+  .logo {
+    max-width: 440px;
+    width: 100%;
+    height: auto;
+    border-radius: 16px;
+    transition: opacity 0.3s var(--ease);
+  }
+  .logo-light { display: block; }
+  .logo-dark { display: none; }
+  html[data-theme="dark"] .logo-light { display: none; }
+  html[data-theme="dark"] .logo-dark { display: block; }
+
+  /* Header nav row (below logo) */
+  .header-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    gap: 20px;
+  }
+  .header-meta {
+    text-align: right;
+  }
+
+  /* Theme toggle button */
+  .theme-toggle {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 200;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: transform 0.3s var(--ease), background 0.3s var(--ease);
+    font-family: inherit;
+  }
+  .theme-toggle:hover { transform: scale(1.08); }
+  .theme-toggle:active { transform: scale(0.95); }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Geist', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* Floating orbs */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .orb-1 {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, #e85d2622, transparent 70%);
+    top: -100px; right: -100px;
+    animation: float-1 20s ease-in-out infinite;
+  }
+  .orb-2 {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, #0d948822, transparent 70%);
+    bottom: 200px; left: -80px;
+    animation: float-2 25s ease-in-out infinite;
+  }
+  .orb-3 {
+    width: 350px; height: 350px;
+    background: radial-gradient(circle, #6366f118, transparent 70%);
+    top: 50%; right: 10%;
+    animation: float-3 18s ease-in-out infinite;
+  }
+  @keyframes float-1 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(-60px,40px) scale(1.1); } 66% { transform: translate(30px,-30px) scale(0.95); } }
+  @keyframes float-2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(50px,-50px) scale(1.15); } }
+  @keyframes float-3 { 0%,100% { transform: translate(0,0); } 25% { transform: translate(-40px,30px); } 75% { transform: translate(30px,-40px); } }
+
+  /* Grain overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 48px;
+    opacity: 0;
+    animation: slide-up 0.8s var(--ease) forwards;
+  }
+  .header h1 {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--text) 0%, var(--text-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-sub {
+    font-size: 16px;
+    color: var(--text-tertiary);
+    font-weight: 400;
+    margin-top: 8px;
+  }
+  .header-right {
+    text-align: right;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .header-right .live-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--teal);
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
+
+  /* Section titles */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+    padding-left: 2px;
+  }
+
+  /* Stat cards — double bezel */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .stat-shell {
+    background: rgba(0,0,0,0.03);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 3px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slide-up 0.6s var(--ease) forwards;
+  }
+  .stat-shell:nth-child(1) { animation-delay: 0.05s; }
+  .stat-shell:nth-child(2) { animation-delay: 0.1s; }
+  .stat-shell:nth-child(3) { animation-delay: 0.15s; }
+  .stat-shell:nth-child(4) { animation-delay: 0.2s; }
+  .stat-shell:nth-child(5) { animation-delay: 0.25s; }
+  .stat-shell:nth-child(6) { animation-delay: 0.3s; }
+  .stat-shell:nth-child(7) { animation-delay: 0.35s; }
+  .stat-shell:nth-child(8) { animation-delay: 0.4s; }
+
+  .stat-card {
+    background: var(--surface);
+    border-radius: calc(var(--radius-lg) - 3px);
+    padding: 20px 22px;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.8);
+    transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+    cursor: default;
+  }
+  .stat-shell:hover .stat-card {
+    transform: translateY(-2px);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.8), var(--shadow-md);
+  }
+  .stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-sub {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 6px;
+    font-weight: 500;
+  }
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.teal { color: var(--teal); }
+  .stat-value.rose { color: var(--rose); }
+  .stat-value.amber { color: var(--amber); }
+  .stat-value.indigo { color: var(--indigo); }
+
+  /* Waste cards */
+  .waste-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 48px; }
+  .waste-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+  }
+  .waste-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+
+  .waste-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--rose), var(--amber));
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+  .waste-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--rose-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+  .waste-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .waste-stat {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--rose);
+    margin-bottom: 8px;
+  }
+  .waste-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+  /* Insights section */
+  .insights-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  @media (max-width: 900px) { .insights-grid { grid-template-columns: 1fr; } }
+
+  .insight-card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 22px 24px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+    overflow: hidden;
+  }
+  .insight-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+  .insight-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .insight-icon.save { background: var(--teal-soft); }
+  .insight-icon.warn { background: var(--amber-soft); }
+  .insight-icon.fix { background: var(--rose-soft); }
+  .insight-icon.tip { background: var(--indigo-soft); }
+
+  .insight-body h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .insight-body p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .insight-body code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: rgba(0,0,0,0.04);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+
+  .savings-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: var(--teal-soft);
+    color: var(--teal);
+    white-space: nowrap;
+  }
+
+  .impact-bar {
+    margin-top: 10px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+  .impact-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1.5s var(--ease);
+  }
+  .impact-fill.high { background: linear-gradient(90deg, var(--rose), var(--amber)); }
+  .impact-fill.medium { background: linear-gradient(90deg, var(--amber), #fbbf24); }
+  .impact-fill.low { background: linear-gradient(90deg, var(--teal), #34d399); }
+
+  /* Action buttons */
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.3s var(--ease);
+  }
+  .action-btn:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: scale(1.03);
+  }
+  .action-btn:active { transform: scale(0.97); }
+  .action-btn.copied {
+    background: var(--teal-soft);
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+
+  /* Fix button — appears on insight cards */
+  .fix-btn {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s var(--ease);
+    font-family: inherit;
+  }
+  .fix-btn:hover {
+    background: var(--accent);
+    color: white;
+    transform: scale(1.04);
+  }
+  .fix-btn:active { transform: scale(0.97); }
+  .fix-btn.success {
+    background: var(--teal-soft);
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+  .fix-btn.error {
+    background: var(--rose-soft);
+    border-color: var(--rose);
+    color: var(--rose);
+  }
+  .fix-btn:disabled { cursor: wait; opacity: 0.7; }
+
+  /* Checklist section */
+  .checklist-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 48px;
+  }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s var(--ease);
+    user-select: none;
+  }
+  .check-item:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); }
+  .check-item.done { opacity: 0.5; text-decoration: line-through; }
+  .check-item .check-box {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    border: 2px solid var(--border-strong);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.3s var(--ease);
+    font-size: 13px;
+  }
+  .check-item.done .check-box {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: white;
+  }
+  .check-priority {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .check-priority.p1 { background: var(--rose-soft); color: var(--rose); }
+  .check-priority.p2 { background: var(--amber-soft); color: var(--amber); }
+  .check-priority.p3 { background: var(--indigo-soft); color: var(--indigo); }
+
+  /* Score card */
+  .score-section {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 48px;
+  }
+  .score-card {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .score-ring {
+    width: 100px; height: 100px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .score-ring svg { width: 100%; height: 100%; }
+  .score-ring circle { fill: none; stroke-width: 6; stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; }
+  .score-ring .ring-bg { stroke: rgba(0,0,0,0.05); }
+  .score-ring .ring-fill { transition: stroke-dashoffset 2s var(--ease); }
+  .score-number {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  .score-number .value { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; }
+  .score-number .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); }
+
+  .score-details h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.02em; }
+  .score-details p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  .score-details .potential { margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--teal); }
+
+  @media (max-width: 900px) { .score-section { flex-direction: column; } }
+
+  /* Chart cards */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  @media (max-width: 900px) { .grid-2, .stats-row, .waste-row { grid-template-columns: 1fr; } }
+  @media (max-width: 1200px) { .stats-row { grid-template-columns: repeat(2, 1fr); } .waste-row { grid-template-columns: 1fr 1fr; } }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.4s var(--ease);
+  }
+  .chart-card:hover { box-shadow: var(--shadow-md); }
+  .chart-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-tertiary);
+    margin-bottom: 20px;
+  }
+  .chart-card canvas { max-height: 280px; }
+
+  /* Tables */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .table-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-strong);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s var(--ease);
+  }
+  tr:hover td { background: rgba(0,0,0,0.015); }
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .bar-track {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(0,0,0,0.04);
+    overflow: hidden;
+    display: inline-block;
+    width: 100px;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--amber));
+    transition: width 1.2s var(--ease);
+  }
+
+  /* Tag pills */
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+  }
+  .tag-accent { background: var(--accent-soft); color: var(--accent); }
+  .tag-teal { background: var(--teal-soft); color: var(--teal); }
+  .tag-rose { background: var(--rose-soft); color: var(--rose); }
+  .tag-amber { background: var(--amber-soft); color: var(--amber); }
+  .tag-indigo { background: var(--indigo-soft); color: var(--indigo); }
+
+  /* Animated counter */
+  .counter { display: inline-block; }
+
+  /* Slide up animation */
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(24px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Shimmer loading */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .loading {
+    background: linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.04) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+    min-height: 200px;
+  }
+
+  /* Sparkline in stat cards */
+  .stat-sparkline {
+    margin-top: 12px;
+    height: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-sparkline svg {
+    width: 100%;
+    height: 100%;
+  }
+  .sparkline-path {
+    fill: none;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .sparkline-area {
+    opacity: 0.1;
+  }
+  .sparkline-path, .sparkline-area {
+    stroke-dasharray: 500;
+    stroke-dashoffset: 500;
+    animation: draw-line 2s var(--ease) forwards;
+  }
+  .sparkline-area {
+    stroke: none;
+    animation: fade-in 2s var(--ease) forwards;
+  }
+  @keyframes draw-line {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 0.1; }
+  }
+
+  /* Animated ring gauges */
+  .ring-gauge {
+    width: 56px;
+    height: 56px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+  }
+  .ring-gauge circle {
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: center;
+  }
+  .ring-bg { stroke: rgba(0,0,0,0.05); }
+  .ring-fill {
+    stroke-dasharray: 150;
+    stroke-dashoffset: 150;
+    animation: ring-draw 1.8s var(--ease) forwards;
+  }
+  @keyframes ring-draw {
+    to { stroke-dashoffset: var(--ring-offset); }
+  }
+  .ring-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Particle canvas */
+  #particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.35;
+  }
+
+  /* Daily Briefing card — top of page, the daily ritual */
+  .briefing {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 28px;
+    padding: 28px 32px;
+    margin-bottom: 32px;
+    background: linear-gradient(135deg, var(--surface) 0%, var(--accent-soft) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+  }
+  .briefing::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    opacity: 0.06;
+    pointer-events: none;
+  }
+  .briefing-score {
+    font-size: 64px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    position: relative;
+    z-index: 1;
+  }
+  .briefing-meta { position: relative; z-index: 1; }
+  .briefing-status {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+  }
+  .briefing-headline {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .briefing-sub {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+  .briefing-deltas {
+    display: flex;
+    gap: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .briefing-delta {
+    text-align: right;
+  }
+  .briefing-delta-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-tertiary);
+  }
+  .briefing-delta-value {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+  }
+  .delta-up { color: var(--teal); }
+  .delta-down { color: var(--rose); }
+  .delta-neutral { color: var(--text-secondary); }
+
+  @media (max-width: 900px) {
+    .briefing { grid-template-columns: 1fr; text-align: center; }
+    .briefing-deltas { justify-content: center; }
+  }
+
+  /* Flowing ticker bar */
+  .ticker-bar {
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 14px 0;
+    margin-bottom: 32px;
+    box-shadow: var(--shadow-sm);
+  }
+  .ticker-inner {
+    display: flex;
+    gap: 48px;
+    animation: ticker-scroll 30s linear infinite;
+    width: max-content;
+  }
+  .ticker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .ticker-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  @keyframes ticker-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* Spend Tracker */
+  .spend-section { margin-bottom: 48px; }
+  .spend-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 1200px) { .spend-row { grid-template-columns: 1fr; } }
+  .spend-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .spend-card h3 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+    margin-bottom: 14px;
+  }
+  .spend-total {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .spend-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+  .spend-compare {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 10px;
+  }
+  .spend-compare strong { font-variant-numeric: tabular-nums; }
+  .spend-category {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  .spend-category:last-child { border-bottom: none; }
+  .spend-category .label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .spend-category .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .spend-category strong {
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+  .spend-empty {
+    text-align: center;
+    padding: 32px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+  }
+  .spend-empty code {
+    background: rgba(0,0,0,0.04);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .tax-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 24px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s var(--ease);
+    font-family: inherit;
+    text-decoration: none;
+    margin-top: 16px;
+  }
+  .tax-btn:hover { transform: scale(1.04); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+
+  /* Live Session sidebar — polls live.json every 10s */
+  .live-sidebar {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    width: 280px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 20px;
+    z-index: 100;
+    transition: transform 0.4s var(--ease), opacity 0.4s var(--ease);
+  }
+  .live-sidebar.empty { display: none; }
+  .live-sidebar h4 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .live-pulse {
+    width: 8px; height: 8px;
+    background: var(--teal);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .live-session {
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+  }
+  .live-session:first-of-type { border-top: none; padding-top: 0; }
+  .live-project {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .live-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 2px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .live-stat strong { color: var(--text); }
+  .live-warning {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: var(--amber-soft);
+    color: var(--amber);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  @media (max-width: 1400px) { .live-sidebar { display: none; } }
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="live-sidebar empty" id="live-sidebar"></div>
+
+<div class="container">
+  <div class="logo-wrap">
+    <img src="token-logo-light.png" alt="Token Tracker" class="logo logo-light">
+    <img src="token-logo-dark.png" alt="Token Tracker" class="logo logo-dark">
+  </div>
+  <div class="header-nav">
+    <nav style="display:flex;gap:10px">
+      <a href="dashboard.html" style="padding:6px 14px;border-radius:20px;background:#e85d26;color:white;font-size:12px;font-weight:600;text-decoration:none">Dashboard</a>
+      <a href="costs.html" style="padding:6px 14px;border-radius:20px;background:#fff;color:#6b6b6b;border:1px solid rgba(0,0,0,0.1);font-size:12px;font-weight:600;text-decoration:none">Costs</a>
+    </nav>
+    <div class="header-meta">
+      <div class="header-sub" id="session-count"></div>
+      <div style="font-size:12px;color:#9a9a9a;font-family:'JetBrains Mono',monospace;margin-top:4px"><span class="live-dot"></span><span id="generated-at"></span></div>
+    </div>
+  </div>
+
+  <div class="briefing" id="briefing"></div>
+
+  <div class="section-title">Overview</div>
+  <div class="stats-row" id="summary-stats"></div>
+
+  <div class="section-title">Waste Analysis</div>
+  <div class="waste-row" id="waste-cards"></div>
+
+  <div class="section-title">Efficiency Score</div>
+  <div class="score-section" id="score-section"></div>
+
+  <div class="section-title">Token-Saving Insights</div>
+  <div class="insights-grid" id="insights"></div>
+
+  <div class="section-title">Action Checklist</div>
+  <div class="checklist-grid" id="checklist"></div>
+
+  <div class="section-title">Activity</div>
+  <div class="grid-2">
+    <div class="chart-card"><h3>Daily Token Usage</h3><canvas id="daily-chart"></canvas></div>
+    <div class="chart-card"><h3>Tokens by Project</h3><canvas id="project-chart"></canvas></div>
+  </div>
+  <div class="grid-2">
+    <div class="chart-card"><h3>Tokens by Model</h3><canvas id="model-chart"></canvas></div>
+    <div class="chart-card"><h3>Top Tools</h3><canvas id="tools-chart"></canvas></div>
+  </div>
+
+  <div class="section-title">Efficiency</div>
+  <div class="grid-2">
+    <div class="chart-card"><h3>Session Duration vs Tokens</h3><canvas id="scatter-chart"></canvas></div>
+    <div class="chart-card"><h3>Turns per Session</h3><canvas id="turns-chart"></canvas></div>
+  </div>
+
+  <div class="section-title">Details</div>
+  <div class="grid-2">
+    <div class="table-card">
+      <h3>Most Re-Read Files</h3>
+      <table id="reread-table"><thead><tr><th>File</th><th>Reads</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="table-card">
+      <h3>Highest Token Sessions</h3>
+      <table id="sessions-table"><thead><tr><th>Project</th><th>Date</th><th>Tokens</th><th>Turns</th><th>Time</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <div class="section-title">Spend Tracker</div>
+  <div class="spend-section" id="spend-section">
+    <div class="spend-empty">Loading receipts…</div>
+  </div>
+</div>
+
+<script>
+Chart.defaults.font.family = "'Geist', -apple-system, sans-serif";
+Chart.defaults.font.weight = 500;
+
+const PALETTE = ['#e85d26','#0d9488','#6366f1','#d97706','#e11d48','#8b5cf6','#06b6d4','#84cc16','#f43f5e','#a855f7'];
+const GRID_COLOR = 'rgba(0,0,0,0.04)';
+const TICK_COLOR = '#9a9a9a';
+
+/* ── Live Session sidebar ── */
+async function pollLive() {
+  try {
+    const r = await fetch('live.json?t=' + Date.now());
+    if (!r.ok) return;
+    const data = await r.json();
+    renderLive(data);
+  } catch (_) { /* ignore */ }
+}
+
+function renderLive(data) {
+  const sidebar = document.getElementById('live-sidebar');
+  if (!sidebar) return;
+  const sessions = (data.active_sessions || []).slice(0, 3);
+  if (sessions.length === 0) {
+    sidebar.classList.add('empty');
+    return;
+  }
+  sidebar.classList.remove('empty');
+
+  sidebar.innerHTML = `
+    <h4><span class="live-pulse"></span>Live Session${sessions.length > 1 ? 's' : ''}</h4>
+    ${sessions.map(s => `
+      <div class="live-session">
+        <div class="live-project">${s.project}</div>
+        <div class="live-stat"><span>Tokens</span><strong>${s.tokens.toLocaleString()}</strong></div>
+        <div class="live-stat"><span>Burn rate</span><strong>${s.burn_rate_per_min.toLocaleString()}/min</strong></div>
+        <div class="live-stat"><span>Cost</span><strong>$${s.cost.toFixed(2)}</strong></div>
+        <div class="live-stat"><span>Duration</span><strong>${s.duration_minutes}m</strong></div>
+        <div class="live-stat"><span>Idle</span><strong>${s.idle_seconds}s</strong></div>
+        ${s.warning ? `<div class="live-warning">⚠ ${s.warning}</div>` : ''}
+      </div>
+    `).join('')}
+  `;
+}
+
+// Start polling
+pollLive();
+setInterval(pollLive, 10000);
+
+/* ── Particle system ── */
+(function initParticles() {
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  const COUNT = 50;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < COUNT; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 2 + 0.5,
+      color: PALETTE[Math.floor(Math.random() * 5)],
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color + '40';
+      ctx.fill();
+    }
+    // Draw connections
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(0,0,0,${0.03 * (1 - dist / 120)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ── Sparkline generator ── */
+function makeSparkline(container, values, color) {
+  const w = container.clientWidth || 160;
+  const h = 32;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const range = max - min || 1;
+  const step = w / (values.length - 1);
+
+  const points = values.map((v, i) => ({
+    x: i * step,
+    y: h - 4 - ((v - min) / range) * (h - 8)
+  }));
+
+  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const areaD = pathD + ` L${points[points.length-1].x},${h} L0,${h} Z`;
+
+  container.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <path d="${areaD}" class="sparkline-area" fill="${color}"/>
+    <path d="${pathD}" class="sparkline-path" stroke="${color}"/>
+  </svg>`;
+}
+
+/* ── Ring gauge generator ── */
+function makeRingGauge(container, pct, color) {
+  const circumference = 150;
+  const offset = circumference - (pct / 100) * circumference;
+  container.innerHTML = `
+    <svg viewBox="0 0 56 56">
+      <circle class="ring-bg" cx="28" cy="28" r="24"/>
+      <circle class="ring-fill" cx="28" cy="28" r="24" stroke="${color}" style="--ring-offset:${offset}; stroke-dasharray:${circumference}; stroke-dashoffset:${circumference}"/>
+    </svg>
+    <div class="ring-label" style="color:${color}">${Math.round(pct)}%</div>
+  `;
+}
+
+/* ── Animated counter ── */
+function animateCounter(el, target) {
+  const duration = 1400;
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 4);
+    el.textContent = Math.round(target * ease).toLocaleString();
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ── Main ── */
+
+// Load history for deltas/streaks
+Promise.all([
+  fetch('report.json').then(r => r.json()),
+  fetch('history.jsonl').then(r => r.text()).catch(() => '')
+]).then(([data, historyText]) => {
+  const history = historyText.trim().split('\n')
+    .filter(l => l)
+    .map(l => { try { return JSON.parse(l); } catch (_) { return null; } })
+    .filter(Boolean)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const today = history[history.length - 1] || null;
+  const yesterday = history[history.length - 2] || null;
+
+  let streak = 0;
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].score >= 75) streak++;
+    else break;
+  }
+
+  renderBriefing(data, today, yesterday, streak);
+});
+
+function renderBriefing(data, today, yesterday, streak) {
+  const score = today ? today.score : 0;
+  const scoreDelta = today && yesterday ? today.score - yesterday.score : 0;
+  const tokenDelta = today && yesterday ? yesterday.tokens - today.tokens : 0;
+  const costDelta = today && yesterday ? yesterday.cost - today.cost : 0;
+
+  let headline = 'Average day';
+  let status = 'Steady';
+  if (scoreDelta >= 5) { headline = "You're winning today"; status = 'On a roll'; }
+  else if (scoreDelta <= -5) { headline = 'Watch your idle gaps'; status = 'Slipping'; }
+  if (score >= 85) headline = 'Excellent run';
+  if (score < 50) { headline = 'Critical — fix the leaks below'; status = 'Bleeding'; }
+
+  const fmtDelta = (val, suffix = '') => {
+    if (val > 0) return `<span class="delta-up">▲ ${val.toLocaleString()}${suffix}</span>`;
+    if (val < 0) return `<span class="delta-down">▼ ${Math.abs(val).toLocaleString()}${suffix}</span>`;
+    return `<span class="delta-neutral">— 0${suffix}</span>`;
+  };
+
+  const fmtCostDelta = (val) => {
+    if (val > 0) return `<span class="delta-up">▲ $${val.toFixed(2)}</span>`;
+    if (val < 0) return `<span class="delta-down">▼ $${Math.abs(val).toFixed(2)}</span>`;
+    return `<span class="delta-neutral">— $0.00</span>`;
+  };
+
+  const briefing = document.getElementById('briefing');
+  if (!briefing) return;
+  briefing.innerHTML = `
+    <div class="briefing-score">${score}</div>
+    <div class="briefing-meta">
+      <div class="briefing-status">${status} · Streak: Day ${streak}</div>
+      <div class="briefing-headline">${headline}</div>
+      <div class="briefing-sub">${today ? `Today: ${today.tokens.toLocaleString()} tokens · $${today.cost.toFixed(2)} · ${today.sessions} sessions` : 'No data yet — run snapshot.py'}</div>
+    </div>
+    <div class="briefing-deltas">
+      <div class="briefing-delta">
+        <div class="briefing-delta-label">Score</div>
+        <div class="briefing-delta-value">${fmtDelta(scoreDelta)}</div>
+      </div>
+      <div class="briefing-delta">
+        <div class="briefing-delta-label">Tokens Saved</div>
+        <div class="briefing-delta-value">${fmtDelta(tokenDelta)}</div>
+      </div>
+      <div class="briefing-delta">
+        <div class="briefing-delta-label">$ Saved</div>
+        <div class="briefing-delta-value">${fmtCostDelta(costDelta)}</div>
+      </div>
+    </div>
+  `;
+}
+
+fetch('report.json').then(r => r.json()).then(data => {
+  document.getElementById('generated-at').textContent = new Date(data.generated_at).toLocaleString();
+  document.getElementById('session-count').textContent = `${data.total_sessions} sessions analyzed across ${Object.keys(data.by_project).length} projects`;
+
+  const s = data.summary;
+  const w = data.token_waste;
+  const ig = data.idle_gap_analysis || {};
+  const days = Object.entries(data.daily_usage);
+
+  /* ── Stat cards with sparklines ── */
+  const dailyTokens = days.slice(-8).map(([,v]) => v.tokens);
+  const dailySessions = days.slice(-8).map(([,v]) => v.sessions);
+  const dailyTurns = days.slice(-8).map(([,v]) => v.turns);
+
+  const stats = [
+    { label: 'Total Tokens', value: s.total_tokens, cls: 'accent', spark: dailyTokens, sparkColor: '#e85d26' },
+    { label: 'Sessions', value: data.total_sessions, sub: `+ ${data.subagent_sessions} subagents`, cls: 'indigo', spark: dailySessions, sparkColor: '#6366f1' },
+    { label: 'Total Turns', value: s.total_turns, cls: '', spark: dailyTurns, sparkColor: '#0d9488' },
+    { label: 'Avg / Session', value: s.avg_tokens_per_session, cls: 'teal', spark: null },
+    { label: 'Tool Uses', value: s.total_tool_uses, cls: '', spark: null },
+    { label: 'Idle Gaps', value: w.idle_gap_count, cls: 'amber', spark: null },
+    { label: 'Redundant Reads', value: w.redundant_file_reads, cls: 'rose', spark: null },
+    { label: 'Cache Created', value: s.total_cache_creation_tokens || 0, cls: '', spark: null },
+  ];
+
+  document.getElementById('summary-stats').innerHTML = stats.map((st, i) =>
+    `<div class="stat-shell">
+      <div class="stat-card">
+        <div class="stat-label">${st.label}</div>
+        <div class="stat-value ${st.cls}" data-target="${st.value}">0</div>
+        ${st.sub ? `<div class="stat-sub">${st.sub}</div>` : ''}
+        ${st.spark ? `<div class="stat-sparkline" data-spark="${i}"></div>` : ''}
+      </div>
+    </div>`
+  ).join('');
+
+  // Animate counters
+  document.querySelectorAll('.stat-value[data-target]').forEach(el => {
+    setTimeout(() => animateCounter(el, parseInt(el.dataset.target)), 400);
+  });
+
+  // Render sparklines
+  document.querySelectorAll('.stat-sparkline[data-spark]').forEach(el => {
+    const idx = parseInt(el.dataset.spark);
+    const st = stats[idx];
+    if (st.spark) setTimeout(() => makeSparkline(el, st.spark, st.sparkColor), 600);
+  });
+
+  /* ── Waste cards with ring gauges ── */
+  const wasteEfficiency = Math.max(0, 100 - w.idle_gap_pct_of_turns);
+  const readEfficiency = Math.max(0, Math.round(100 - (w.redundant_file_reads / Math.max(s.total_tool_uses, 1)) * 100));
+
+  document.getElementById('waste-cards').innerHTML = `
+    <div class="waste-card" style="position:relative">
+      <div class="ring-gauge" id="ring-idle"></div>
+      <div class="waste-icon">&#9201;</div>
+      <h4>Idle Gap Waste</h4>
+      <div class="waste-stat">${w.idle_gap_count}</div>
+      <p>${(ig.total_idle_minutes || 0).toLocaleString()} min idle. Avg gap: ${Math.round((ig.avg_gap_seconds||0)/60)} min. Each rebuilds full context at 10x cost.</p>
+    </div>
+    <div class="waste-card" style="position:relative">
+      <div class="ring-gauge" id="ring-reads"></div>
+      <div class="waste-icon">&#128196;</div>
+      <h4>Redundant Reads</h4>
+      <div class="waste-stat">${w.redundant_file_reads}</div>
+      <p>Same file read 3+ times per session. Worst: <span class="mono">${(w.top_reread_files[0]?.path?.split('/').pop() || 'none')}</span> at ${w.top_reread_files[0]?.total_reads || 0}x.</p>
+    </div>
+    <div class="waste-card" style="position:relative">
+      <div class="ring-gauge" id="ring-cache"></div>
+      <div class="waste-icon">&#9888;&#65039;</div>
+      <h4>Cache Miss Rate</h4>
+      <div class="waste-stat">${w.idle_gap_pct_of_turns}%</div>
+      <p>Turns after 5+ min idle gap that triggered expensive full-context rebuilds.</p>
+    </div>
+  `;
+
+  // Render ring gauges (delayed for animation)
+  setTimeout(() => {
+    makeRingGauge(document.getElementById('ring-idle'), Math.min(w.idle_gap_pct_of_turns * 10, 100), '#e11d48');
+    makeRingGauge(document.getElementById('ring-reads'), Math.min(readEfficiency, 100), '#d97706');
+    makeRingGauge(document.getElementById('ring-cache'), wasteEfficiency, '#0d9488');
+  }, 500);
+
+  /* ── Efficiency Score ── */
+  const totalWastedReads = w.redundant_file_reads;
+  const idleGapPct = w.idle_gap_pct_of_turns;
+  const avgTokensPerTurn = s.avg_tokens_per_turn;
+
+  // Score: 100 = perfect efficiency, penalize for waste
+  const readPenalty = Math.min(totalWastedReads / 50, 30);   // up to -30 for 1500+ wasted reads
+  const idlePenalty = Math.min(idleGapPct * 3, 25);          // up to -25 for high idle gap %
+  const tokenPenalty = Math.min(Math.max(s.avg_tokens_per_session - 15000, 0) / 2000, 20); // penalize high avg
+  const efficiencyScore = Math.max(0, Math.round(100 - readPenalty - idlePenalty - tokenPenalty));
+
+  const scoreColor = efficiencyScore >= 75 ? 'var(--teal)' : efficiencyScore >= 50 ? 'var(--amber)' : 'var(--rose)';
+  const scoreGrade = efficiencyScore >= 85 ? 'Excellent' : efficiencyScore >= 70 ? 'Good' : efficiencyScore >= 50 ? 'Needs Work' : 'Critical';
+  const circumference = 2 * Math.PI * 42;
+  const scoreOffset = circumference - (efficiencyScore / 100) * circumference;
+
+  // Estimate potential savings
+  const estSavedFromReads = totalWastedReads * 800; // ~800 tokens per redundant read
+  const estSavedFromIdleAwareness = Math.round(s.total_tokens * 0.05); // 5% savings from idle awareness
+  const totalPotentialSavings = estSavedFromReads + estSavedFromIdleAwareness;
+
+  document.getElementById('score-section').innerHTML = `
+    <div class="score-card">
+      <div class="score-ring">
+        <svg viewBox="0 0 100 100">
+          <circle class="ring-bg" cx="50" cy="50" r="42" stroke-width="6"/>
+          <circle class="ring-fill" cx="50" cy="50" r="42" stroke="${scoreColor}" stroke-width="6"
+            stroke-dasharray="${circumference}" stroke-dashoffset="${circumference}"
+            style="transition: stroke-dashoffset 2s var(--ease); transform: rotate(-90deg); transform-origin: center;"/>
+        </svg>
+        <div class="score-number">
+          <div class="value" style="color:${scoreColor}" data-score="${efficiencyScore}">0</div>
+          <div class="label">Score</div>
+        </div>
+      </div>
+      <div class="score-details">
+        <h3>${scoreGrade}</h3>
+        <p>Your token efficiency across ${data.total_sessions} sessions. Score factors in idle gap frequency, redundant file reads, and average tokens per session.</p>
+        <div class="potential">Potential savings: ~${(totalPotentialSavings / 1000).toFixed(0)}K tokens with the fixes below</div>
+      </div>
+    </div>
+  `;
+
+  // Animate score ring and number
+  setTimeout(() => {
+    const ringFill = document.querySelector('.score-ring .ring-fill');
+    if (ringFill) ringFill.style.strokeDashoffset = scoreOffset;
+    const scoreEl = document.querySelector('.score-number .value');
+    if (scoreEl) animateCounter(scoreEl, efficiencyScore);
+  }, 400);
+
+  /* ── Insights ── */
+  const insights = [];
+
+  // 1. Most re-read files
+  const topReread = w.top_reread_files.slice(0, 3);
+  if (topReread.length > 0 && topReread[0].total_reads > 5) {
+    insights.push({
+      icon: 'fix', emoji: '&#128196;',
+      title: `Stop re-reading ${topReread[0].path.split('/').pop()}`,
+      badge: `~${(topReread[0].total_reads * 800 / 1000).toFixed(0)}K saved`,
+      desc: `Read <strong>${topReread[0].total_reads}x</strong> across sessions. Click to auto-add a Quick Reference for this file to its project's CLAUDE.md.`,
+      impact: 'high', pct: Math.min(topReread[0].total_reads / 2, 100),
+      fix: { endpoint: '/api/fix/add-to-claude-md', payload: { file_path: topReread[0].path }, label: 'Add to CLAUDE.md' },
+    });
+  }
+
+  // 2. Idle gap awareness
+  if (w.idle_gap_count > 50) {
+    insights.push({
+      icon: 'warn', emoji: '&#9201;',
+      title: 'Compact before coffee breaks',
+      badge: `${w.idle_gap_count} gaps found`,
+      desc: `After 5 min idle, cache expires and the full context rebuilds at <strong>10x cost</strong>. Run <code>/compact</code> before stepping away, or plan work in focused blocks.`,
+      impact: 'high', pct: Math.min(w.idle_gap_count / 10, 100),
+    });
+  }
+
+  // 3. Model usage — are you using opus when sonnet would work?
+  const opusTokens = data.by_model['claude-opus-4-6']?.tokens || 0;
+  const sonnetTokens = (data.by_model['claude-sonnet-4-6']?.tokens || 0) + (data.by_model['claude-sonnet-4-20250514']?.tokens || 0);
+  if (opusTokens > sonnetTokens * 2) {
+    insights.push({
+      icon: 'tip', emoji: '&#129504;',
+      title: 'Opus is 5x more expensive than Sonnet',
+      badge: `${Math.round(opusTokens / (opusTokens + sonnetTokens) * 100)}% on Opus`,
+      desc: `${(opusTokens/1000).toFixed(0)}K tokens on Opus vs ${(sonnetTokens/1000).toFixed(0)}K on Sonnet. Use Sonnet for mechanical tasks (file edits, test runs, boilerplate) and reserve Opus for architecture and complex reasoning.`,
+      impact: 'medium', pct: Math.round(opusTokens / (opusTokens + sonnetTokens) * 100),
+    });
+  }
+
+  // 4. Heaviest project
+  const heaviestProject = Object.entries(data.by_project)
+    .filter(([k]) => !k.match(/^[0-9a-f]{8}-/))
+    .sort((a,b) => b[1].tokens - a[1].tokens)[0];
+  if (heaviestProject) {
+    const [projName, projData] = heaviestProject;
+    const projPct = Math.round(projData.tokens / s.total_tokens * 100);
+    if (projPct > 25) {
+      insights.push({
+        icon: 'tip', emoji: '&#128202;',
+        title: `${projName} uses ${projPct}% of all tokens`,
+        badge: `${(projData.tokens/1000).toFixed(0)}K tokens`,
+        desc: `${projData.sessions} sessions, ${projData.turns.toLocaleString()} turns. Consider adding a richer <code>CLAUDE.md</code> to reduce exploration overhead, or break large sessions into focused tasks.`,
+        impact: 'medium', pct: projPct,
+      });
+    }
+  }
+
+  // 5. Tool usage efficiency
+  const readCount = data.top_tools.find(t => t.tool === 'Read')?.count || 0;
+  const grepCount = data.top_tools.find(t => t.tool === 'Grep')?.count || 0;
+  const globCount = data.top_tools.find(t => t.tool === 'Glob')?.count || 0;
+  if (readCount > (grepCount + globCount) * 3) {
+    insights.push({
+      icon: 'save', emoji: '&#128269;',
+      title: 'Use Grep/Glob before Read',
+      badge: `${readCount} reads vs ${grepCount + globCount} searches`,
+      desc: `${readCount} file reads but only ${grepCount + globCount} Grep/Glob searches. Searching first narrows which files to read, saving tokens on files that turn out to be irrelevant.`,
+      impact: 'low', pct: Math.min(readCount / (grepCount + globCount + 1) * 10, 100),
+    });
+  }
+
+  // 6. Brain wiki hint
+  insights.push({
+    icon: 'save', emoji: '&#129513;',
+    title: 'Keep a project CLAUDE.md with key file exports',
+    badge: 'Compounding',
+    desc: `A short <code>CLAUDE.md</code> in each project that lists the key files, their exports, and high-level architecture saves ~2-5K tokens per session by preventing re-exploration of the codebase.`,
+    impact: 'low', pct: 60,
+  });
+
+  document.getElementById('insights').innerHTML = insights.map((ins, i) => `
+    <div class="insight-card">
+      <div class="insight-icon ${ins.icon}">${ins.emoji}</div>
+      <div class="insight-body">
+        <h4>${ins.title} <span class="savings-badge">${ins.badge}</span></h4>
+        <p>${ins.desc}</p>
+        <div class="impact-bar"><div class="impact-fill ${ins.impact}" style="width:0%" data-target="${ins.pct}"></div></div>
+        ${ins.fix ? `<button class="fix-btn" data-endpoint="${ins.fix.endpoint}" data-payload='${JSON.stringify(ins.fix.payload).replace(/'/g, "&apos;")}'>&#9889; ${ins.fix.label}</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  // Wire fix buttons
+  document.querySelectorAll('.fix-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const endpoint = btn.dataset.endpoint;
+      const payload = JSON.parse(btn.dataset.payload.replace(/&apos;/g, "'"));
+      const originalLabel = btn.textContent;
+      btn.textContent = '⏳ Running…';
+      btn.disabled = true;
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          btn.textContent = '✓ ' + (data.message || 'Fixed');
+          btn.classList.add('success');
+        } else {
+          btn.textContent = '✗ ' + (data.error || 'Failed');
+          btn.classList.add('error');
+        }
+      } catch (e) {
+        btn.textContent = '✗ ' + e.message;
+        btn.classList.add('error');
+      }
+      setTimeout(() => {
+        btn.disabled = false;
+      }, 3000);
+    });
+  });
+
+  // Animate impact bars
+  setTimeout(() => {
+    document.querySelectorAll('.impact-fill[data-target]').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  }, 800);
+
+  /* ── Action Checklist ── */
+  const actions = [];
+
+  // Generate actions from data
+  if (w.redundant_file_reads > 50) {
+    const topFile = w.top_reread_files[0];
+    actions.push({
+      text: `Add ${topFile.path.split('/').pop()} key exports to CLAUDE.md`,
+      command: `echo "# Key exports from ${topFile.path.split('/').pop()}" >> CLAUDE.md`,
+      priority: 'p1',
+      savings: `~${(topFile.total_reads * 800 / 1000).toFixed(0)}K tokens`,
+    });
+  }
+
+  if (w.idle_gap_count > 100) {
+    actions.push({
+      text: 'Run /compact before stepping away from sessions',
+      command: '/compact',
+      priority: 'p1',
+      savings: '10x cost reduction per idle gap',
+    });
+  }
+
+  // Check for sessions with very high token counts
+  const heavySessions = data.sessions.filter(s => s.total_tokens > 100000);
+  if (heavySessions.length > 5) {
+    actions.push({
+      text: `Break heavy sessions into smaller tasks (${heavySessions.length} sessions > 100K tokens)`,
+      command: null,
+      priority: 'p2',
+      savings: '~30% token reduction',
+    });
+  }
+
+  if (opusTokens > sonnetTokens * 2) {
+    actions.push({
+      text: 'Use --model sonnet for mechanical tasks (file edits, test runs)',
+      command: 'claude --model sonnet',
+      priority: 'p2',
+      savings: '5x cheaper per token',
+    });
+  }
+
+  // Re-read files to address
+  w.top_reread_files.slice(1, 4).forEach(f => {
+    if (f.total_reads > 10) {
+      actions.push({
+        text: `Reduce re-reads of ${f.path.split('/').slice(-2).join('/')} (${f.total_reads}x)`,
+        command: null,
+        priority: 'p3',
+        savings: `~${(f.total_reads * 500 / 1000).toFixed(0)}K tokens`,
+      });
+    }
+  });
+
+  actions.push({
+    text: 'Add a CLAUDE.md to each project with key file exports',
+    command: null,
+    priority: 'p3',
+    savings: '2-5K tokens per future session',
+  });
+
+  document.getElementById('checklist').innerHTML = actions.map((a, i) => `
+    <div class="check-item" onclick="this.classList.toggle('done'); this.querySelector('.check-box').innerHTML = this.classList.contains('done') ? '&#10003;' : ''">
+      <div class="check-box"></div>
+      <div>
+        <div style="font-weight:500">${a.text}</div>
+        <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">Saves: ${a.savings}</div>
+        ${a.command ? `<button class="action-btn" onclick="event.stopPropagation(); navigator.clipboard.writeText('${a.command.replace(/'/g, "\\'")}'); this.textContent='Copied!'; this.classList.add('copied'); setTimeout(()=>{this.textContent='${a.command.replace(/'/g, "\\'")}'; this.classList.remove('copied')}, 2000)">&#128203; ${a.command}</button>` : ''}
+      </div>
+      <span class="check-priority ${a.priority}">${a.priority}</span>
+    </div>
+  `).join('');
+
+  /* ── Charts ── */
+  const chartAnimation = { duration: 1400, easing: 'easeOutQuart' };
+  const tooltipStyle = { backgroundColor: '#1a1a1a', titleColor: '#fff', bodyColor: '#ccc', cornerRadius: 8, padding: 12, bodyFont: { family: "'JetBrains Mono'" } };
+
+  // Daily bar
+  const last14 = days.slice(-14);
+  new Chart(document.getElementById('daily-chart'), {
+    type: 'bar',
+    data: {
+      labels: last14.map(([d]) => d.slice(5)),
+      datasets: [{
+        data: last14.map(([,v]) => v.tokens),
+        backgroundColor: last14.map(([,v]) => v.tokens > 500000 ? '#e85d2633' : '#0d948833'),
+        borderColor: last14.map(([,v]) => v.tokens > 500000 ? '#e85d26' : '#0d9488'),
+        borderWidth: 1.5, borderRadius: 6, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, animation: chartAnimation,
+      plugins: { legend: { display: false }, tooltip: tooltipStyle },
+      scales: {
+        y: { ticks: { color: TICK_COLOR, font: { size: 11 }, callback: v => (v/1000)+'K' }, grid: { color: GRID_COLOR }, border: { display: false } },
+        x: { ticks: { color: TICK_COLOR, font: { size: 11 } }, grid: { display: false }, border: { display: false } }
+      }
+    }
+  });
+
+  // Project doughnut
+  const projects = Object.entries(data.by_project)
+    .filter(([k]) => !k.match(/^[0-9a-f]{8}-/))
+    .sort((a,b) => b[1].tokens - a[1].tokens).slice(0,7);
+  new Chart(document.getElementById('project-chart'), {
+    type: 'doughnut',
+    data: {
+      labels: projects.map(([k]) => k),
+      datasets: [{ data: projects.map(([,v]) => v.tokens), backgroundColor: PALETTE, borderWidth: 0, borderRadius: 4, spacing: 3 }]
+    },
+    options: {
+      responsive: true, cutout: '70%', animation: { animateRotate: true, duration: 1600 },
+      plugins: { legend: { position: 'right', labels: { color: '#6b6b6b', padding: 14, font: { size: 12, weight: 500 }, usePointStyle: true, pointStyle: 'circle' } }, tooltip: tooltipStyle }
+    }
+  });
+
+  // Model doughnut
+  const models = Object.entries(data.by_model).sort((a,b) => b[1].tokens - a[1].tokens);
+  new Chart(document.getElementById('model-chart'), {
+    type: 'doughnut',
+    data: {
+      labels: models.map(([k]) => k.replace('claude-','').replace('-20250514','')),
+      datasets: [{ data: models.map(([,v]) => v.tokens), backgroundColor: PALETTE.slice(2), borderWidth: 0, borderRadius: 4, spacing: 3 }]
+    },
+    options: {
+      responsive: true, cutout: '70%', animation: { animateRotate: true, duration: 1600 },
+      plugins: { legend: { position: 'right', labels: { color: '#6b6b6b', padding: 14, font: { size: 12, weight: 500 }, usePointStyle: true, pointStyle: 'circle' } }, tooltip: tooltipStyle }
+    }
+  });
+
+  // Tools horizontal bar
+  const tools = data.top_tools.slice(0, 10);
+  new Chart(document.getElementById('tools-chart'), {
+    type: 'bar',
+    data: {
+      labels: tools.map(t => t.tool.replace('mcp__Claude_in_Chrome__','chrome:').replace('mcp__Claude_Preview__','preview:')),
+      datasets: [{ data: tools.map(t => t.count), backgroundColor: '#6366f122', borderColor: '#6366f1', borderWidth: 1.5, borderRadius: 6 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, animation: chartAnimation,
+      plugins: { legend: { display: false }, tooltip: tooltipStyle },
+      scales: {
+        x: { ticks: { color: TICK_COLOR, font: { size: 11 } }, grid: { color: GRID_COLOR }, border: { display: false } },
+        y: { ticks: { color: '#6b6b6b', font: { size: 11, family: "'JetBrains Mono'" } }, grid: { display: false }, border: { display: false } }
+      }
+    }
+  });
+
+  // Scatter
+  const scatterData = data.sessions.filter(s => s.duration_minutes > 0 && s.total_tokens > 0).map(s => ({
+    x: s.duration_minutes, y: s.total_tokens
+  }));
+  new Chart(document.getElementById('scatter-chart'), {
+    type: 'scatter',
+    data: { datasets: [{ data: scatterData, backgroundColor: '#e85d2633', borderColor: '#e85d26', pointRadius: 5, pointHoverRadius: 8 }] },
+    options: {
+      responsive: true, animation: chartAnimation,
+      plugins: { legend: { display: false }, tooltip: tooltipStyle },
+      scales: {
+        x: { title: { display: true, text: 'Duration (min)', color: TICK_COLOR, font: { size: 11 } }, ticks: { color: TICK_COLOR }, grid: { color: GRID_COLOR }, border: { display: false } },
+        y: { title: { display: true, text: 'Tokens', color: TICK_COLOR, font: { size: 11 } }, ticks: { color: TICK_COLOR, callback: v => (v/1000)+'K' }, grid: { color: GRID_COLOR }, border: { display: false } }
+      }
+    }
+  });
+
+  // Turns histogram
+  const turnBuckets = [10, 25, 50, 100, 200, 500, 1000];
+  const turnCounts = turnBuckets.map((max, i) => {
+    const min = i === 0 ? 0 : turnBuckets[i-1];
+    return data.sessions.filter(s => s.turns >= min && s.turns < max).length;
+  });
+  turnCounts.push(data.sessions.filter(s => s.turns >= 1000).length);
+  new Chart(document.getElementById('turns-chart'), {
+    type: 'bar',
+    data: {
+      labels: [...turnBuckets.map((v,i) => i===0 ? `0-${v}` : `${turnBuckets[i-1]}-${v}`), '1000+'],
+      datasets: [{ data: turnCounts, backgroundColor: '#0d948833', borderColor: '#0d9488', borderWidth: 1.5, borderRadius: 6 }]
+    },
+    options: {
+      responsive: true, animation: chartAnimation,
+      plugins: { legend: { display: false }, tooltip: tooltipStyle },
+      scales: {
+        y: { title: { display: true, text: 'Sessions', color: TICK_COLOR, font: { size: 11 } }, ticks: { color: TICK_COLOR }, grid: { color: GRID_COLOR }, border: { display: false } },
+        x: { title: { display: true, text: 'Turns', color: TICK_COLOR, font: { size: 11 } }, ticks: { color: TICK_COLOR, font: { size: 10 } }, grid: { display: false }, border: { display: false } }
+      }
+    }
+  });
+
+  /* ── Tables ── */
+  const tbody = document.querySelector('#reread-table tbody');
+  w.top_reread_files.slice(0, 12).forEach((f, i) => {
+    const short = f.path.split('/').slice(-2).join('/');
+    const maxBar = w.top_reread_files[0].total_reads;
+    const pct = Math.round(f.total_reads / maxBar * 100);
+    tbody.innerHTML += `<tr style="opacity:0;animation:slide-up 0.4s var(--ease) ${0.5 + i*0.05}s forwards">
+      <td class="mono" title="${f.path}">${short}</td>
+      <td><span class="bar-track"><span class="bar-fill" style="width:${pct}%"></span></span><strong>${f.total_reads}</strong></td>
+    </tr>`;
+  });
+
+  const stbody = document.querySelector('#sessions-table tbody');
+  data.sessions.sort((a,b) => b.total_tokens - a.total_tokens).slice(0, 12).forEach((se, i) => {
+    const date = se.start_time ? se.start_time.slice(5,10) : '?';
+    // Deterministic color per project name (hash-based) so it's stable across reloads
+    const tagClasses = ['accent', 'teal', 'indigo', 'amber', 'rose'];
+    const hash = (se.project || '').split('').reduce((a,c) => a + c.charCodeAt(0), 0);
+    const tagCls = tagClasses[hash % tagClasses.length];
+    stbody.innerHTML += `<tr style="opacity:0;animation:slide-up 0.4s var(--ease) ${0.5 + i*0.05}s forwards">
+      <td><span class="tag tag-${tagCls}">${se.project||'?'}</span></td>
+      <td class="mono">${date}</td>
+      <td><strong>${se.total_tokens.toLocaleString()}</strong></td>
+      <td>${se.turns}</td>
+      <td class="mono">${se.duration_minutes}m</td>
+    </tr>`;
+  });
+});
+
+// Category colors for spend tracker
+const CAT_COLORS = {
+  'ai-api': '#e85d26',
+  'ai-tool': '#6366f1',
+  'dev-infra': '#0d9488',
+  'dev-tools': '#d97706',
+  'data': '#8b5cf6',
+  'other': '#9a9a9a',
+};
+
+async function loadSpend() {
+  const section = document.getElementById('spend-section');
+  if (!section) return;
+
+  let rows = [];
+  try {
+    const r = await fetch('receipts.jsonl?t=' + Date.now());
+    if (r.ok) {
+      const text = await r.text();
+      rows = text.trim().split('\n')
+        .filter(l => l)
+        .map(l => { try { return JSON.parse(l); } catch { return null; } })
+        .filter(Boolean);
+    }
+  } catch { /* no file yet */ }
+
+  if (rows.length === 0) {
+    section.innerHTML = `
+      <div class="spend-card">
+        <div class="spend-empty">
+          No receipts yet. Run the Gmail extractor to populate this section.<br><br>
+          Data file: <code>receipts.jsonl</code><br>
+          Script: <code>receipts.py</code>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Summarize
+  let total = 0;
+  const byCat = {};
+  const byVendor = {};
+  rows.forEach(r => {
+    const amt = parseFloat(r.amount) || 0;
+    total += amt;
+    const cat = r.category || 'other';
+    byCat[cat] = (byCat[cat] || 0) + amt;
+    const vend = r.vendor || 'unknown';
+    byVendor[vend] = (byVendor[vend] || 0) + amt;
+  });
+
+  // Get token-cost estimate from the report (if available)
+  let tokenEstimate = 0;
+  try {
+    const reportRes = await fetch('report.json');
+    if (reportRes.ok) {
+      const report = await reportRes.json();
+      // Rough estimate based on total tokens across models
+      const models = report.by_model || {};
+      Object.entries(models).forEach(([m, d]) => {
+        const tokens = d.tokens || 0;
+        let rate = 0;
+        if (m.includes('opus')) rate = 60;       // avg of $15/$75
+        else if (m.includes('sonnet')) rate = 12; // avg of $3/$15
+        else if (m.includes('haiku')) rate = 2.5; // avg of $0.80/$4
+        tokenEstimate += (tokens / 1_000_000) * rate;
+      });
+    }
+  } catch { /* ignore */ }
+
+  const catEntries = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  const vendorEntries = Object.entries(byVendor).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const recent = rows.sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 15);
+
+  const year = new Date().getFullYear();
+
+  section.innerHTML = `
+    <div class="spend-row">
+      <div class="spend-card">
+        <h3>Total Spend (Last 4 Months)</h3>
+        <div class="spend-total">$${total.toFixed(2)}</div>
+        <div class="spend-sub">${rows.length} receipts across ${Object.keys(byVendor).length} vendors</div>
+        <div class="spend-compare">
+          <span>Token cost estimate</span><strong>$${tokenEstimate.toFixed(2)}</strong>
+        </div>
+        <div class="spend-compare">
+          <span>Billed (from receipts)</span><strong>$${total.toFixed(2)}</strong>
+        </div>
+        <a class="tax-btn" href="reports/tax-report-${year}-ytd.md" target="_blank">📄 Generate Tax Report</a>
+      </div>
+
+      <div class="spend-card">
+        <h3>By Category</h3>
+        ${catEntries.map(([cat, amt]) => `
+          <div class="spend-category">
+            <span class="label">
+              <span class="dot" style="background:${CAT_COLORS[cat] || '#999'}"></span>
+              ${cat}
+            </span>
+            <strong>$${amt.toFixed(2)}</strong>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="spend-card">
+        <h3>Top Vendors</h3>
+        ${vendorEntries.map(([vend, amt]) => `
+          <div class="spend-category">
+            <span class="label">${vend}</span>
+            <strong>$${amt.toFixed(2)}</strong>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="table-card">
+      <h3>Recent Receipts</h3>
+      <table>
+        <thead><tr><th>Date</th><th>Vendor</th><th>Category</th><th>Amount</th><th>Description</th></tr></thead>
+        <tbody>
+          ${recent.map(r => `
+            <tr>
+              <td class="mono">${r.date || '?'}</td>
+              <td><strong>${r.vendor || '?'}</strong></td>
+              <td><span class="tag tag-accent">${r.category || 'other'}</span></td>
+              <td class="mono">$${(parseFloat(r.amount) || 0).toFixed(2)}</td>
+              <td class="mono" style="font-size:11px;color:var(--text-tertiary)">${(r.description || r.email_subject || '').substring(0, 60)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+loadSpend();
+// Refresh every 60 seconds
+setInterval(loadSpend, 60000);
+</script>
+<button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">🌙</button>
+<script>
+(function() {
+  const root = document.documentElement;
+  const saved = localStorage.getItem('tokentracker-theme') || 'light';
+  root.setAttribute('data-theme', saved);
+  const btn = document.getElementById('theme-toggle');
+  const setIcon = () => { btn.textContent = root.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙'; };
+  setIcon();
+  btn.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('tokentracker-theme', next);
+    setIcon();
+  });
+})();
+</script>
+</body>
+</html>

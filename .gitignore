@@ -1,0 +1,30 @@
+# Personal data — never commit
+receipts.jsonl
+history.jsonl
+report.json
+live.json
+reports/
+logs/
+.pids/
+
+# Gmail OAuth
+credentials.json
+token.json
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
