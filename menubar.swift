@@ -1,4 +1,4 @@
-// Token Tracker — native macOS menu bar app + frosted-glass floating widget.
+// Token Auditor — native macOS menu bar app + frosted-glass floating widget.
 // No install. /usr/bin/swift ships with Xcode Command Line Tools.
 //
 // Run with:    swift menubar.swift
@@ -334,7 +334,7 @@ final class WidgetWindow: NSPanel, NSWindowDelegate {
     let tokensLabel = NSTextField(labelWithString: "TOKENS TODAY")
     let costValue = NSTextField(labelWithString: "$0.00")
     let costLabel = NSTextField(labelWithString: "COST TODAY")
-    let brand = NSTextField(labelWithString: "TOKEN TRACKER")
+    let brand = NSTextField(labelWithString: "TOKEN AUDITOR")
     let closeButton = NSButton()
     let themeButton = NSButton()
     var isDark: Bool = true
@@ -446,7 +446,7 @@ final class WidgetWindow: NSPanel, NSWindowDelegate {
         brand.textColor = NSColor.labelColor
         brand.isEditable = false; brand.isBordered = false; brand.drawsBackground = false
         brand.translatesAutoresizingMaskIntoConstraints = false
-        brand.stringValue = "Token Tracker"
+        brand.stringValue = "Token Auditor"
         container.addSubview(brand)
 
         // Close × button
@@ -816,7 +816,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let btn = statusItem.button {
-            if let img = NSImage(systemSymbolName: "bolt.circle.fill", accessibilityDescription: "Token Tracker") {
+            if let img = NSImage(systemSymbolName: "bolt.circle.fill", accessibilityDescription: "Token Auditor") {
                 let cfg = NSImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
                 btn.image = img.withSymbolConfiguration(cfg)
                 btn.imagePosition = .imageLeading
@@ -863,9 +863,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.removeAllItems()
 
         // Brand header
-        let header = NSMenuItem(title: "Token Tracker", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: "Token Auditor", action: nil, keyEquivalent: "")
         header.attributedTitle = NSAttributedString(
-            string: "Token Tracker",
+            string: "Token Auditor",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
                 .foregroundColor: BRAND_ORANGE,

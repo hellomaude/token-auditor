@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Token Tracker MCP server — stdlib only.
+"""Token Auditor MCP server — stdlib only.
 
 Speaks the MCP stdio protocol (JSON-RPC 2.0 over stdin/stdout) directly so
 this works with any Python 3.9+ install — no `pip install mcp` needed.

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Token Tracker — manual startup script
+# Token Auditor — manual startup script
 #
 # Starts background processes (server + live monitor loop + analyze refresh loop).
 # Use this instead of launchd on macOS if your install lives under ~/Documents/

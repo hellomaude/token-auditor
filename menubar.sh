@@ -1,5 +1,5 @@
 #!/bin/bash
-# Token Tracker — SwiftBar plugin
+# Token Auditor — SwiftBar plugin
 # When installed, symlink to ~/Library/Application Support/SwiftBar/Plugins/tokentracker.30s.sh
 #
 # Since SwiftBar symlinks this file, BASH_SOURCE won't resolve to your repo.
