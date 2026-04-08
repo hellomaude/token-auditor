@@ -36,29 +36,32 @@ final class Settings {
     var widgetShowToday = true
     var widgetShowCodex = true
     var widgetShowSessions = true
+    var widgetSize: String = "medium"  // "small" | "medium" | "large"
 
     init() { load() }
 
     func load() {
         guard let data = try? Data(contentsOf: settingsPath),
-              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Bool]
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return }
-        menuBarShowScore = dict["menuBarShowScore"] ?? true
-        menuBarShowCost = dict["menuBarShowCost"] ?? true
-        menuBarShowSessionCount = dict["menuBarShowSessionCount"] ?? true
-        widgetShowToday = dict["widgetShowToday"] ?? true
-        widgetShowCodex = dict["widgetShowCodex"] ?? true
-        widgetShowSessions = dict["widgetShowSessions"] ?? true
+        menuBarShowScore = (dict["menuBarShowScore"] as? Bool) ?? true
+        menuBarShowCost = (dict["menuBarShowCost"] as? Bool) ?? true
+        menuBarShowSessionCount = (dict["menuBarShowSessionCount"] as? Bool) ?? true
+        widgetShowToday = (dict["widgetShowToday"] as? Bool) ?? true
+        widgetShowCodex = (dict["widgetShowCodex"] as? Bool) ?? true
+        widgetShowSessions = (dict["widgetShowSessions"] as? Bool) ?? true
+        widgetSize = (dict["widgetSize"] as? String) ?? "medium"
     }
 
     func save() {
-        let dict: [String: Bool] = [
+        let dict: [String: Any] = [
             "menuBarShowScore": menuBarShowScore,
             "menuBarShowCost": menuBarShowCost,
             "menuBarShowSessionCount": menuBarShowSessionCount,
             "widgetShowToday": widgetShowToday,
             "widgetShowCodex": widgetShowCodex,
             "widgetShowSessions": widgetShowSessions,
+            "widgetSize": widgetSize,
         ]
         if let data = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
             try? data.write(to: settingsPath)
@@ -260,13 +263,71 @@ final class DraggableVisualEffectView: NSVisualEffectView {
 let BRAND_ORANGE = NSColor(red: 0.91, green: 0.36, blue: 0.15, alpha: 1) // #e85d26
 let BRAND_PURPLE = NSColor(red: 0.56, green: 0.40, blue: 0.94, alpha: 1) // #8f66f0
 
+final class FlippedView: NSView {
+    override var isFlipped: Bool { false }
+}
+
+final class ResizeGrip: NSView {
+    weak var targetWindow: WidgetWindow?
+    init(window: WidgetWindow) {
+        self.targetWindow = window
+        super.init(frame: .zero)
+        wantsLayer = true
+    }
+    required init?(coder: NSCoder) { fatalError() }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override var mouseDownCanMoveWindow: Bool { false }
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .crosshair)
+    }
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor.white.withAlphaComponent(0.55).setStroke()
+        let p = NSBezierPath()
+        p.lineWidth = 1.2
+        p.lineCapStyle = .round
+        for i in 0..<3 {
+            let o = CGFloat(i) * 4 + 3
+            p.move(to: NSPoint(x: bounds.maxX - o, y: bounds.minY + 2))
+            p.line(to: NSPoint(x: bounds.maxX - 2, y: bounds.minY + o))
+        }
+        p.stroke()
+    }
+    private var startFrame: NSRect = .zero
+    private var startMouse: NSPoint = .zero
+    override func mouseDown(with event: NSEvent) {
+        guard let win = targetWindow else { return }
+        startFrame = win.frame
+        startMouse = NSEvent.mouseLocation
+    }
+    override func mouseDragged(with event: NSEvent) {
+        guard let win = targetWindow else { return }
+        let cur = NSEvent.mouseLocation
+        let dx = cur.x - startMouse.x
+        let dy = cur.y - startMouse.y
+        let newW = max(win.minSize.width, min(win.maxSize.width, startFrame.width + dx))
+        let newH = max(win.minSize.height, min(win.maxSize.height, startFrame.height - dy))
+        var f = startFrame
+        f.size.width = newW
+        f.size.height = newH
+        f.origin.y = startFrame.maxY - newH
+        win.setFrame(f, display: true)
+        win.markUserResized()
+    }
+}
+
 final class WidgetWindow: NSPanel, NSWindowDelegate {
+    func markUserResized() { userResized = true }
+    var sizeScale: CGFloat = 1.0
+    func applySizePreset() {}
     private var userResized = false
     func windowDidResize(_ notification: Notification) {
         // Detect manual user resize (not our animated setFrame) via inLiveResize.
         if self.inLiveResize { userResized = true }
     }
     let ring = ScoreRing()
+    var ringW: NSLayoutConstraint!
+    var ringH: NSLayoutConstraint!
+    weak var ringHostView: NSView?
     let scoreLabel = NSTextField(labelWithString: "—")
     let scoreOutOf = NSTextField(labelWithString: "/100")
     let tokensValue = NSTextField(labelWithString: "—")
@@ -418,6 +479,7 @@ final class WidgetWindow: NSPanel, NSWindowDelegate {
         ringHost.layer?.addSublayer(ring)
         ringHost.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(ringHost)
+        self.ringHostView = ringHost
 
         styleLabel(scoreLabel, size: 30, weight: .semibold, color: .labelColor, mono: true, rounded: true)
         scoreLabel.alignment = .center
@@ -495,6 +557,7 @@ final class WidgetWindow: NSPanel, NSWindowDelegate {
         sessionsStack.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(sessionsStack)
 
+
         NSLayoutConstraint.activate([
             brand.topAnchor.constraint(equalTo: container.topAnchor, constant: 14),
             brand.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
@@ -511,8 +574,8 @@ final class WidgetWindow: NSPanel, NSWindowDelegate {
 
             ringHost.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
             ringHost.topAnchor.constraint(equalTo: brand.bottomAnchor, constant: 10),
-            ringHost.widthAnchor.constraint(equalToConstant: 84),
-            ringHost.heightAnchor.constraint(equalToConstant: 84),
+            { self.ringW = ringHost.widthAnchor.constraint(equalToConstant: 84); return self.ringW }(),
+            { self.ringH = ringHost.heightAnchor.constraint(equalToConstant: 84); return self.ringH }(),
 
             scoreLabel.centerXAnchor.constraint(equalTo: ringHost.centerXAnchor),
             scoreLabel.centerYAnchor.constraint(equalTo: ringHost.centerYAnchor, constant: -3),
