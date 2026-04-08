@@ -28,3 +28,5 @@ env/
 .idea/
 *.swp
 *.swo
+codex_report.json
+cursor_report.json

@@ -1,0 +1,11 @@
+{
+  "_comment": "Daily usage caps. Edit these to match your actual plan limits. Percent-remaining gauges on the dashboard read from this file.",
+  "caps": {
+    "claude_code_daily_tokens": 10000000,
+    "claude_code_cap_note": "Claude Max ~5M-20M tokens/day rolling window depending on tier",
+    "codex_daily_cost_usd": 20.00,
+    "codex_cap_note": "Codex Pro soft daily budget; adjust to your plan",
+    "cursor_daily_requests": 500,
+    "cursor_cap_note": "Cursor Pro ~500 premium requests/day"
+  }
+}

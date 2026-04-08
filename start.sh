@@ -19,7 +19,7 @@ LOG_DIR="$AUDITOR_DIR/logs"
 mkdir -p "$PID_DIR" "$LOG_DIR"
 
 stop_all() {
-  for name in server live refresh; do
+  for name in server live refresh menubar; do
     pidfile="$PID_DIR/$name.pid"
     if [ -f "$pidfile" ]; then
       pid=$(cat "$pidfile")
@@ -37,7 +37,7 @@ stop_all() {
 status() {
   echo "Token Auditor status"
   echo "===================="
-  for name in server live refresh; do
+  for name in server live refresh menubar; do
     pidfile="$PID_DIR/$name.pid"
     if [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; then
       echo "  $name: running (pid $(cat "$pidfile"))"
@@ -78,6 +78,15 @@ case "${1:-start}" in
     nohup bash -c "while true; do python3 analyze.py >> '$LOG_DIR/refresh.log' 2>&1; sleep 300; done" > /dev/null 2>&1 &
     echo $! > "$PID_DIR/refresh.pid"
     echo "  started: analyze refresh (pid $!)"
+
+    # 4. Native menu bar app (uses /usr/bin/swift, no install needed)
+    if [ -x /usr/bin/swift ] && [ -f "$AUDITOR_DIR/menubar.swift" ]; then
+      nohup /usr/bin/swift "$AUDITOR_DIR/menubar.swift" > "$LOG_DIR/menubar.log" 2>&1 &
+      echo $! > "$PID_DIR/menubar.pid"
+      echo "  started: menubar (pid $!) — look for 🟢 in your menu bar"
+    else
+      echo "  skipped: menubar (need /usr/bin/swift — install Xcode Command Line Tools)"
+    fi
 
     sleep 1
     echo ""

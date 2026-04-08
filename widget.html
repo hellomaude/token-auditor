@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Token Tracker</title>
+<style>
+:root {
+  --bg: #fafafa;
+  --fg: #1a1a1a;
+  --muted: #767676;
+  --card: #ffffff;
+  --border: #e5e5e5;
+  --accent: #e85d26;
+  --good: #10b981;
+  --warn: #f59e0b;
+  --bad: #ef4444;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0f10;
+    --fg: #f5f5f5;
+    --muted: #8a8a8a;
+    --card: #1a1a1c;
+    --border: #2a2a2c;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-app-region: drag;
+  overflow: hidden;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px 10px 14px;
+  gap: 8px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.brand {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.refresh {
+  font-size: 10px;
+  color: var(--muted);
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.refresh:hover { background: var(--border); }
+
+.score-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.score {
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1;
+}
+.score-out {
+  font-size: 14px;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+.score.good { color: var(--good); }
+.score.warn { color: var(--warn); }
+.score.bad { color: var(--bad); }
+.delta {
+  margin-left: auto;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.delta.up { color: var(--good); background: rgba(16,185,129,0.12); }
+.delta.down { color: var(--bad); background: rgba(239,68,68,0.12); }
+.delta.flat { color: var(--muted); }
+
+.metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.metric {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.metric-label {
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.metric-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+.live {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+.dot.active {
+  background: var(--good);
+  box-shadow: 0 0 0 0 rgba(16,185,129,0.6);
+  animation: pulse 1.8s infinite;
+}
+.dot.warn { background: var(--warn); }
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+  70%  { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+  100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+}
+.live-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.error {
+  font-size: 10px;
+  color: var(--bad);
+  text-align: center;
+  padding: 4px;
+}
+</style>
+</head>
+<body>
+  <div class="row">
+    <span class="brand">Token Tracker</span>
+    <span class="refresh" id="refresh-btn" title="Refresh">↻</span>
+  </div>
+
+  <div class="score-row">
+    <span class="score" id="score">—</span>
+    <span class="score-out">/100</span>
+    <span class="delta flat" id="delta"></span>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Tokens today</div>
+      <div class="metric-value" id="tokens">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Cost today</div>
+      <div class="metric-value" id="cost">—</div>
+    </div>
+  </div>
+
+  <div class="live">
+    <span class="dot" id="live-dot"></span>
+    <span class="live-text" id="live-text">No active session</span>
+  </div>
+
+<script>
+function fmt(n) {
+  if (n == null) return '—';
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'k';
+  return n.toString();
+}
+
+async function loadHistory() {
+  // history.jsonl isn't a static file the server serves directly,
+  // so we read the rolling latest from report.json's daily_usage.
+  try {
+    const r = await fetch('report.json?t=' + Date.now());
+    if (!r.ok) throw new Error('report ' + r.status);
+    const d = await r.json();
+    const days = Object.entries(d.daily_usage || {}).sort();
+    const today = days[days.length - 1];
+    const yesterday = days[days.length - 2];
+
+    // Score: derive from waste using same formula as snapshot.py
+    const waste = d.token_waste || {};
+    const sum = d.summary || {};
+    const redundant = waste.redundant_file_reads || 0;
+    const idlePct = waste.idle_gap_pct_of_turns || 0;
+    const avg = sum.avg_tokens_per_session || 0;
+    const readPenalty = Math.min(redundant / 50, 30);
+    const idlePenalty = Math.min(idlePct * 3, 25);
+    const tokenPenalty = Math.min(Math.max(avg - 15000, 0) / 2000, 20);
+    const score = Math.max(0, Math.round(100 - readPenalty - idlePenalty - tokenPenalty));
+
+    const el = document.getElementById('score');
+    el.textContent = score;
+    el.classList.remove('good','warn','bad');
+    el.classList.add(score >= 75 ? 'good' : score >= 50 ? 'warn' : 'bad');
+
+    document.getElementById('tokens').textContent = today ? fmt(today[1].tokens) : '—';
+
+    // Cost today: try codex first if claude-code costs aren't tracked
+    let cost = 0;
+    if (d.codex && d.codex.by_day && today) {
+      const codexToday = d.codex.by_day[today[0]];
+      if (codexToday) cost += codexToday.cost || 0;
+    }
+    document.getElementById('cost').textContent = '$' + cost.toFixed(2);
+
+    // Delta vs yesterday (token count proxy if no score history)
+    if (today && yesterday) {
+      const deltaT = today[1].tokens - yesterday[1].tokens;
+      const dEl = document.getElementById('delta');
+      const sign = deltaT > 0 ? '↑' : deltaT < 0 ? '↓' : '·';
+      dEl.textContent = `${sign} ${fmt(Math.abs(deltaT))}`;
+      dEl.classList.remove('up','down','flat');
+      // For tokens, "down" is good (using fewer)
+      dEl.classList.add(deltaT < 0 ? 'up' : deltaT > 0 ? 'down' : 'flat');
+    }
+  } catch (e) {
+    document.getElementById('score').textContent = 'X';
+    document.getElementById('live-text').textContent = 'No report.json — run analyze.py';
+  }
+}
+
+async function loadLive() {
+  try {
+    const r = await fetch('live.json?t=' + Date.now());
+    if (!r.ok) throw new Error('live ' + r.status);
+    const live = await r.json();
+    const sessions = live.active_sessions || [];
+    const dot = document.getElementById('live-dot');
+    const text = document.getElementById('live-text');
+    if (sessions.length === 0) {
+      dot.className = 'dot';
+      text.textContent = 'No active session';
+      return;
+    }
+    const s = sessions[0];
+    const warn = s.warning;
+    dot.className = 'dot ' + (warn ? 'warn' : 'active');
+    const idle = Math.floor(s.idle_seconds || 0);
+    const proj = (s.project || 'session').slice(0, 18);
+    if (warn) {
+      text.textContent = `${proj} · idle ${idle}s ⚠`;
+    } else {
+      text.textContent = `${proj} · ${fmt(s.tokens)} tok`;
+    }
+  } catch (e) {
+    // live.json optional — silently ignore
+  }
+}
+
+async function refresh() {
+  await Promise.all([loadHistory(), loadLive()]);
+}
+
+document.getElementById('refresh-btn').addEventListener('click', refresh);
+refresh();
+setInterval(refresh, 10000);  // 10s — matches live monitor cadence
+</script>
+</body>
+</html>

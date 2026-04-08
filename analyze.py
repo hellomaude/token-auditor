@@ -343,6 +343,28 @@ def main():
     # Add subagent count
     report["subagent_sessions"] = len(subagent_files)
 
+    # Multi-source: stitch in Codex CLI + Cursor reports if their adapters are present
+    report["sources"] = {"claude-code": True}
+    try:
+        import codex_analyze
+        codex_report = codex_analyze.run()
+        report["codex"] = codex_report
+        report["sources"]["codex-cli"] = True
+        cs = codex_report["summary"]
+        print(f"Codex: {cs['total_sessions']} sessions, {cs['total_tokens']:,} tokens, ${cs['total_cost']:.2f}")
+    except Exception as e:
+        print(f"Codex skipped: {e}")
+    try:
+        import cursor_analyze
+        cursor_report = cursor_analyze.run()
+        report["cursor"] = cursor_report
+        if "error" not in cursor_report:
+            report["sources"]["cursor"] = True
+            cs = cursor_report["summary"]
+            print(f"Cursor: {cs['total_composers']} composers, {cs['total_messages']:,} messages (no token data)")
+    except Exception as e:
+        print(f"Cursor skipped: {e}")
+
     # Write report
     with open(output_path, "w") as f:
         json.dump(report, f, indent=2, default=str)

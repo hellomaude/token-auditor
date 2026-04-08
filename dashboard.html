@@ -5,58 +5,113 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Token Auditor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
+  /* Premium display font from MC Drive (Hone Assets/envato/fonts/big-reno) */
+  @font-face {
+    font-family: 'BigReno';
+    src: url('assets/BigReno.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
   :root {
-    --bg: #fafaf9;
-    --surface: #ffffff;
-    --surface-raised: #ffffff;
-    --border: rgba(0,0,0,0.06);
-    --border-strong: rgba(0,0,0,0.1);
-    --text: #1a1a1a;
-    --text-secondary: #6b6b6b;
-    --text-tertiary: #9a9a9a;
+    /* Subtle warm tint — barely there */
+    --bg: #fbfaf9;
+    --bg-gradient: radial-gradient(ellipse at top left, #fdfaf7 0%, #fbfaf9 50%, #fafafa 100%);
+
+    /* Frosted-glass surfaces */
+    --surface: rgba(255, 252, 250, 0.78);
+    --surface-raised: rgba(255, 252, 250, 0.86);
+    --surface-strong: rgba(255, 252, 250, 0.93);
+    --glass-blur: saturate(180%) blur(28px);
+    --glass-border: rgba(255, 255, 255, 0.55);
+
+    --border: rgba(232, 93, 38, 0.10);
+    --border-strong: rgba(232, 93, 38, 0.22);
+    --text: #1f1410;
+    --text-secondary: #6b5147;
+    --text-tertiary: #a08577;
+
+    /* Warm palette — all derived from logo orange */
     --accent: #e85d26;
-    --accent-soft: #fff0eb;
-    --teal: #0d9488;
-    --teal-soft: #ecfdf5;
-    --rose: #e11d48;
-    --rose-soft: #fff1f2;
-    --amber: #d97706;
-    --amber-soft: #fffbeb;
-    --indigo: #6366f1;
-    --indigo-soft: #eef2ff;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.03);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
-    --shadow-glow: 0 0 40px rgba(232,93,38,0.08);
+    --accent-light: #ff7a3d;
+    --accent-soft: rgba(232, 93, 38, 0.12);
+    --coral: #f5734a;
+    --coral-soft: rgba(245, 115, 74, 0.13);
+    --rose: #e0414c;
+    --rose-soft: rgba(224, 65, 76, 0.12);
+    --amber: #f59e0b;
+    --amber-soft: rgba(245, 158, 11, 0.14);
+    --gold: #d97706;
+    --gold-soft: rgba(217, 119, 6, 0.13);
+    --peach: #ff9c6e;
+    --peach-soft: rgba(255, 156, 110, 0.13);
+
+    /* Aliases so existing teal/indigo references stay warm */
+    --teal: #d97706;
+    --teal-soft: rgba(217, 119, 6, 0.13);
+    --indigo: #c2410c;
+    --indigo-soft: rgba(194, 65, 12, 0.13);
+
+    --shadow-sm: 0 4px 14px rgba(40, 25, 18, 0.08), 0 1px 3px rgba(40, 25, 18, 0.06);
+    --shadow-md: 0 16px 40px rgba(40, 25, 18, 0.12), 0 6px 14px rgba(40, 25, 18, 0.08), 0 1px 3px rgba(40, 25, 18, 0.05);
+    --shadow-lg: 0 32px 80px rgba(40, 25, 18, 0.18), 0 12px 32px rgba(40, 25, 18, 0.12), 0 2px 6px rgba(40, 25, 18, 0.08);
+    --shadow-glow: 0 0 60px rgba(232, 93, 38, 0.12);
+
     --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
-    --radius-xl: 28px;
+    --radius-md: 16px;
+    --radius-lg: 22px;
+    --radius-xl: 32px;
     --ease: cubic-bezier(0.32, 0.72, 0, 1);
     --logo-blend: normal;
     --logo-bg: transparent;
   }
 
   html[data-theme="dark"] {
-    --bg: #0b0b0f;
-    --surface: #14141a;
-    --surface-raised: #1a1a22;
-    --border: rgba(255,255,255,0.06);
-    --border-strong: rgba(255,255,255,0.12);
-    --text: #f0f0f2;
-    --text-secondary: #a0a0a8;
-    --text-tertiary: #666670;
-    --accent-soft: rgba(232,93,38,0.12);
-    --teal-soft: rgba(13,148,136,0.15);
-    --rose-soft: rgba(225,29,72,0.12);
-    --amber-soft: rgba(217,119,6,0.15);
-    --indigo-soft: rgba(99,102,241,0.15);
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+    /* Warm dark — espresso/cocoa, not pure black */
+    --bg: #1c1714;
+    --bg-gradient: radial-gradient(ellipse at top left, #221a16 0%, #1c1714 50%, #181410 100%);
+
+    --surface: rgba(38, 30, 26, 0.78);
+    --surface-raised: rgba(46, 36, 30, 0.88);
+    --surface-strong: rgba(54, 42, 35, 0.94);
+    --glass-blur: saturate(160%) blur(30px);
+    --glass-border: rgba(255, 240, 225, 0.08);
+
+    --border: rgba(255, 240, 225, 0.08);
+    --border-strong: rgba(255, 240, 225, 0.14);
+    --text: #fdfaf7;              /* cream white — lifted from light-mode --bg-gradient start */
+    --text-secondary: #d4c3b4;    /* warm sand */
+    --text-tertiary: #8a7868;     /* muted taupe */
+
+    /* Dark-mode accents — cream/peach whites borrowed from the light-mode backdrop.
+       Orange is reserved exclusively for the single hero element (--accent). */
+    --accent: #ff9a6e;            /* sole saturated orange — hero score only */
+    --accent-light: #ffb89a;
+    --accent-soft: rgba(255, 154, 110, 0.12);
+
+    /* All other "color" tokens are actually warm neutrals — soft creams and peaches */
+    --coral: #fde8d5;             /* pale peach-cream */
+    --coral-soft: rgba(253, 232, 213, 0.08);
+    --rose: #f5d5c0;              /* desaturated nude */
+    --rose-soft: rgba(245, 213, 192, 0.08);
+    --amber: #fdf0d8;             /* pale butter */
+    --amber-soft: rgba(253, 240, 216, 0.08);
+    --gold: #f0dbb8;
+    --gold-soft: rgba(240, 219, 184, 0.08);
+    --peach: #fde8d5;
+    --peach-soft: rgba(253, 232, 213, 0.08);
+    --teal: #f0dbb8;
+    --teal-soft: rgba(240, 219, 184, 0.08);
+    --indigo: #fde8d5;
+    --indigo-soft: rgba(253, 232, 213, 0.08);
+
+    --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 18px 44px rgba(0, 0, 0, 0.65), 0 6px 16px rgba(0, 0, 0, 0.50), 0 1px 3px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 36px 88px rgba(0, 0, 0, 0.75), 0 14px 36px rgba(0, 0, 0, 0.60), 0 2px 6px rgba(0, 0, 0, 0.50);
+
     --logo-blend: screen;
     --logo-bg: #000;
   }
@@ -75,7 +130,6 @@
     max-width: 440px;
     width: 100%;
     height: auto;
-    border-radius: 16px;
     transition: opacity 0.3s var(--ease);
   }
   .logo-light { display: block; }
@@ -104,9 +158,11 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: var(--surface);
-    border: 1px solid var(--border-strong);
-    box-shadow: var(--shadow-md);
+    background: var(--surface-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.6);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -121,41 +177,69 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'Geist', -apple-system, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.5;
     min-height: 100dvh;
     overflow-x: hidden;
+    position: relative;
   }
 
-  /* Floating orbs */
+  /* Sunrise backdrop — Hone Assets / Sweetness Gradient #1.
+     Heavily blurred + slowly drifting so the glass blur has real warm
+     color to refract against and the background never feels static. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: -25% -25% -25% -25%;
+    background: url('assets/sunrise-gradient.jpg') center/cover no-repeat;
+    filter: blur(60px) saturate(115%);
+    opacity: 0.28;
+    pointer-events: none;
+    z-index: 0;
+    transform-origin: center center;
+    animation: sunrise-drift 50s ease-in-out infinite alternate;
+  }
+  @keyframes sunrise-drift {
+    0%   { transform: translate(-2%, -1%) rotate(0deg) scale(1.05); }
+    50%  { transform: translate(2%, 1%) rotate(4deg) scale(1.15); }
+    100% { transform: translate(-1%, 2%) rotate(-3deg) scale(1.08); }
+  }
+  html[data-theme="dark"] body::before {
+    opacity: 0.38;
+    filter: blur(80px) saturate(110%) brightness(0.75) hue-rotate(-8deg);
+  }
+
+  /* Floating orbs — ambient warm accents that drift with the backdrop */
   .orb {
     position: fixed;
     border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.4;
+    filter: blur(110px);
+    opacity: 0.22;
     pointer-events: none;
     z-index: 0;
   }
+  html[data-theme="dark"] .orb { opacity: 0.55; filter: blur(100px); }
   .orb-1 {
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, #e85d2622, transparent 70%);
-    top: -100px; right: -100px;
-    animation: float-1 20s ease-in-out infinite;
+    width: 540px; height: 540px;
+    background: radial-gradient(circle, rgba(232, 93, 38, 0.20), transparent 70%);
+    top: -160px; right: -160px;
+    animation: float-1 22s ease-in-out infinite;
   }
   .orb-2 {
-    width: 400px; height: 400px;
-    background: radial-gradient(circle, #0d948822, transparent 70%);
-    bottom: 200px; left: -80px;
-    animation: float-2 25s ease-in-out infinite;
+    width: 440px; height: 440px;
+    background: radial-gradient(circle, rgba(255, 156, 110, 0.18), transparent 70%);
+    bottom: 220px; left: -120px;
+    animation: float-2 28s ease-in-out infinite;
   }
   .orb-3 {
-    width: 350px; height: 350px;
-    background: radial-gradient(circle, #6366f118, transparent 70%);
-    top: 50%; right: 10%;
-    animation: float-3 18s ease-in-out infinite;
+    width: 380px; height: 380px;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.16), transparent 70%);
+    top: 50%; right: 6%;
+    animation: float-3 20s ease-in-out infinite;
   }
+  html[data-theme="dark"] .orb { opacity: 0.45; }
   @keyframes float-1 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(-60px,40px) scale(1.1); } 66% { transform: translate(30px,-30px) scale(0.95); } }
   @keyframes float-2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(50px,-50px) scale(1.15); } }
   @keyframes float-3 { 0%,100% { transform: translate(0,0); } 25% { transform: translate(-40px,30px); } 75% { transform: translate(30px,-40px); } }
@@ -233,9 +317,12 @@
   .stats-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 1fr;
     gap: 16px;
     margin-bottom: 48px;
   }
+  .stats-row .stat-shell { display: flex; }
+  .stats-row .stat-card { width: 100%; display: flex; flex-direction: column; }
   .stat-shell {
     background: rgba(0,0,0,0.03);
     border: 1px solid var(--border);
@@ -256,15 +343,20 @@
 
   .stat-card {
     background: var(--surface);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
     border-radius: calc(var(--radius-lg) - 3px);
     padding: 20px 22px;
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.8);
-    transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+    box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.6);
+    transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease), background 0.4s var(--ease);
     cursor: default;
+    position: relative;
   }
   .stat-shell:hover .stat-card {
-    transform: translateY(-2px);
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.8), var(--shadow-md);
+    transform: translateY(-3px);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.7);
   }
   .stat-label {
     font-size: 11px;
@@ -293,27 +385,56 @@
   .stat-value.amber { color: var(--amber); }
   .stat-value.indigo { color: var(--indigo); }
 
+  /* Today row — usage bar inside stat cards */
+  .today-bar-track {
+    margin-top: 10px;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  html[data-theme="dark"] .today-bar-track { background: rgba(255,255,255,0.08); }
+  .today-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.8s var(--ease);
+    box-shadow: 0 0 8px currentColor;
+  }
+  .live-pulse-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    margin-right: 6px;
+    box-shadow: 0 0 0 0 rgba(16,185,129,0.6);
+    animation: live-pulse 1.8s ease-in-out infinite;
+    vertical-align: middle;
+  }
+  @keyframes live-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+    70%     { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+  }
+
   /* Waste cards */
-  .waste-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 48px; }
+  .waste-row { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; gap: 16px; margin-bottom: 48px; }
+  .waste-row .waste-card { display: flex; flex-direction: column; height: 100%; }
   .waste-card {
     position: relative;
     overflow: hidden;
     border-radius: var(--radius-md);
     padding: 24px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.5);
+    transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease), background 0.4s var(--ease);
   }
-  .waste-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-
-  .waste-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--rose), var(--amber));
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  .waste-card:hover {
+    transform: translateY(-4px);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.6);
   }
   .waste-icon {
     width: 40px; height: 40px;
@@ -345,17 +466,23 @@
   .insight-card {
     position: relative;
     background: var(--surface);
-    border: 1px solid var(--border);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-md);
     padding: 22px 24px;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.5);
     display: flex;
     gap: 16px;
     align-items: flex-start;
-    transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+    transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease), background 0.4s var(--ease);
     overflow: hidden;
   }
-  .insight-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .insight-card:hover {
+    transform: translateY(-3px);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
 
   .insight-icon {
     width: 40px; height: 40px;
@@ -541,10 +668,12 @@
   .score-card {
     flex: 1;
     background: var(--surface);
-    border: 1px solid var(--border);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     padding: 28px;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.55);
     display: flex;
     align-items: center;
     gap: 24px;
@@ -579,13 +708,19 @@
 
   .chart-card {
     background: var(--surface);
-    border: 1px solid var(--border);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     padding: 28px;
-    box-shadow: var(--shadow-sm);
-    transition: box-shadow 0.4s var(--ease);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.55);
+    transition: box-shadow 0.4s var(--ease), transform 0.4s var(--ease), background 0.4s var(--ease);
   }
-  .chart-card:hover { box-shadow: var(--shadow-md); }
+  .chart-card:hover {
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.65);
+    background: var(--surface-raised);
+    transform: translateY(-2px);
+  }
   .chart-card h3 {
     font-size: 13px;
     font-weight: 600;
@@ -599,10 +734,12 @@
   /* Tables */
   .table-card {
     background: var(--surface);
-    border: 1px solid var(--border);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     padding: 28px;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.55);
     overflow: hidden;
   }
   .table-card h3 {
@@ -779,12 +916,17 @@
     gap: 28px;
     padding: 28px 32px;
     margin-bottom: 32px;
-    background: linear-gradient(135deg, var(--surface) 0%, var(--accent-soft) 100%);
-    border: 1px solid var(--border);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 230, 215, 0.40) 100%);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.7);
     position: relative;
     overflow: hidden;
+  }
+  html[data-theme="dark"] .briefing {
+    background: linear-gradient(135deg, rgba(40, 22, 16, 0.78) 0%, rgba(232, 93, 38, 0.14) 100%);
   }
   .briefing::before {
     content: '';
@@ -798,10 +940,11 @@
     pointer-events: none;
   }
   .briefing-score {
-    font-size: 64px;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    line-height: 1;
+    font-family: 'BigReno', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 76px;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
     font-variant-numeric: tabular-nums;
     color: var(--accent);
     position: relative;
@@ -1089,8 +1232,14 @@
 
   <div class="briefing" id="briefing"></div>
 
+  <div class="section-title">Today</div>
+  <div class="stats-row" id="today-row"></div>
+
   <div class="section-title">Overview</div>
   <div class="stats-row" id="summary-stats"></div>
+
+  <div class="section-title" id="tools-title" style="display:none">Tools</div>
+  <div class="stats-row" id="tools-row"></div>
 
   <div class="section-title">Waste Analysis</div>
   <div class="waste-row" id="waste-cards"></div>
@@ -1139,7 +1288,7 @@
 </div>
 
 <script>
-Chart.defaults.font.family = "'Geist', -apple-system, sans-serif";
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, sans-serif";
 Chart.defaults.font.weight = 500;
 
 const PALETTE = ['#e85d26','#0d9488','#6366f1','#d97706','#e11d48','#8b5cf6','#06b6d4','#84cc16','#f43f5e','#a855f7'];
@@ -1156,7 +1305,133 @@ async function pollLive() {
   } catch (_) { /* ignore */ }
 }
 
+let __liveData = null;
+
+function renderToday() {
+  const row = document.getElementById('today-row');
+  if (!row || !__report) return;
+
+  const fmtN = (n) => (n || 0).toLocaleString();
+  const fmtK = (n) => {
+    if (n == null) return '—';
+    if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return (n/1e3).toFixed(1) + 'k';
+    return Math.round(n).toString();
+  };
+  const fmt$ = (n) => '$' + (n || 0).toFixed(2);
+
+  const daily = __report.daily_usage || {};
+  const dailyKeys = Object.keys(daily).sort();
+  const todayKey = dailyKeys[dailyKeys.length - 1];
+  const todayData = todayKey ? daily[todayKey] : null;
+  const claudeTokensToday = todayData ? (todayData.tokens || 0) : 0;
+
+  const codexBy = (__report.codex && __report.codex.by_day) || {};
+  const codexToday = todayKey && codexBy[todayKey] ? codexBy[todayKey] : null;
+  const codexTokensToday = codexToday ? (codexToday.tokens || 0) : 0;
+  const codexCostToday = codexToday ? (codexToday.cost || 0) : 0;
+
+  const caps = (__config && __config.caps) || {};
+  const claudeCap = caps.claude_code_daily_tokens || 10000000;
+  const codexFallbackCap  = caps.codex_daily_cost_usd || 20;
+
+  const claudePctUsed = Math.min(100, (claudeTokensToday / claudeCap) * 100);
+  const claudePctRemaining = Math.max(0, 100 - claudePctUsed);
+
+  // Codex: prefer REAL subscription rate_limits from the rollout files.
+  // The primary window is 5h (used for the card below), secondary is 7d.
+  const codexRL = (__report.codex && __report.codex.rate_limits) || null;
+  const codexPlan = codexRL && codexRL.plan_type ? codexRL.plan_type : null;
+
+  let codexPctUsed, codexPctRemaining, codexBarSub, codexSource;
+  if (codexRL && codexRL.primary && typeof codexRL.primary.used_percent === 'number') {
+    codexPctUsed = codexRL.primary.used_percent;
+    codexPctRemaining = Math.max(0, 100 - codexPctUsed);
+    const mins = codexRL.primary.window_minutes || 300;
+    const windowLabel = mins >= 1440 ? `${Math.round(mins/1440)}d` : `${Math.round(mins/60)}h`;
+    const resetsAt = codexRL.primary.resets_at;
+    const resetsIn = resetsAt ? Math.max(0, resetsAt - Math.floor(Date.now()/1000)) : 0;
+    const resetsInLabel = resetsIn >= 3600 ? `${Math.round(resetsIn/3600)}h` : `${Math.round(resetsIn/60)}m`;
+    codexBarSub = `${codexPctUsed.toFixed(0)}% of ${windowLabel} · resets in ${resetsInLabel}`;
+    codexSource = `Pro sub · real-time`;
+  } else {
+    codexPctUsed = Math.min(100, (codexCostToday / codexFallbackCap) * 100);
+    codexPctRemaining = Math.max(0, 100 - codexPctUsed);
+    codexBarSub = `${fmt$(codexCostToday)} / ${fmt$(codexFallbackCap)} cap`;
+    codexSource = 'Cost vs config cap';
+  }
+
+  // Codex secondary (7-day) window, if available
+  let codex7d = null;
+  if (codexRL && codexRL.secondary && typeof codexRL.secondary.used_percent === 'number') {
+    const used = codexRL.secondary.used_percent;
+    const mins = codexRL.secondary.window_minutes || 10080;
+    const label = mins >= 1440 ? `${Math.round(mins/1440)}d` : `${Math.round(mins/60)}h`;
+    codex7d = { used, remaining: Math.max(0, 100-used), label };
+  }
+
+  // Live current session (from live.json if any active)
+  const liveSessions = (__liveData && __liveData.active_sessions) || [];
+  const currentSession = liveSessions[0] || null;
+  const sessionTokens = currentSession ? (currentSession.tokens || 0) : 0;
+  const sessionProject = currentSession ? (currentSession.project || 'session') : '—';
+  const sessionBurn = currentSession ? (currentSession.burn_rate_per_min || 0) : 0;
+
+  const pctBarColor = (pct) => pct > 50 ? '#10b981' : pct > 20 ? '#f59e0b' : '#ef4444';
+
+  const cards = [
+    // Daily spend moved to position #1 per request
+    {
+      label: 'Codex Today',
+      value: fmt$(codexCostToday),
+      sub: codexToday ? `${fmtK(codexTokensToday)} tok · ${codexToday.sessions || 0} sessions` : 'No Codex data yet',
+      color: '#f59e0b',
+    },
+    {
+      label: 'Claude Code Today',
+      value: fmtK(claudeTokensToday),
+      sub: todayData ? `${todayData.sessions || 0} sessions · ${todayData.turns || 0} turns` : 'No data yet',
+      color: '#e85d26',
+    },
+    {
+      label: 'Current Session',
+      value: currentSession ? fmtK(sessionTokens) : 'Idle',
+      sub: currentSession ? `${sessionProject} · ${fmtN(Math.round(sessionBurn))}/min` : 'No active session',
+      color: currentSession ? '#e85d26' : 'var(--text-tertiary)',
+      pulse: !!currentSession,
+    },
+    {
+      label: codexPlan ? `Codex ${codexPlan.toUpperCase()} · Remaining` : 'Codex · % Remaining',
+      value: codexPctRemaining.toFixed(0) + '%',
+      sub: codex7d ? `5h: ${codexPctUsed.toFixed(0)}% used · 7d: ${codex7d.used.toFixed(0)}% used` : codexBarSub,
+      color: pctBarColor(codexPctRemaining),
+      bar: codexPctUsed,
+      bar2: codex7d ? codex7d.used : null,
+      bar2Label: codex7d ? '7d' : null,
+      source: codexSource,
+    },
+  ];
+
+  row.innerHTML = cards.map(c => `
+    <div class="stat-shell">
+      <div class="stat-card">
+        <div class="stat-label">${c.pulse ? '<span class="live-pulse-dot"></span>' : ''}${c.label}</div>
+        <div class="stat-value" style="color:${c.color}">${c.value}</div>
+        <div class="stat-sub">${c.sub}</div>
+        ${c.bar != null ? `
+          <div class="today-bar-track"><div class="today-bar-fill" style="width:${c.bar}%;background:${c.color}"></div></div>
+        ` : ''}
+        ${c.bar2 != null ? `
+          <div class="today-bar-track" style="margin-top:4px"><div class="today-bar-fill" style="width:${c.bar2}%;background:${c.color};opacity:0.55"></div></div>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
 function renderLive(data) {
+  __liveData = data;
+  renderToday();  // keep Today cards fresh on every live poll
   const sidebar = document.getElementById('live-sidebar');
   if (!sidebar) return;
   const sessions = (data.active_sessions || []).slice(0, 3);
@@ -1298,11 +1573,18 @@ function animateCounter(el, target) {
 
 /* ── Main ── */
 
+// Module-level state so pollLive() can keep the Today row fresh on every tick
+let __report = null;
+let __config = null;
+
 // Load history for deltas/streaks
 Promise.all([
   fetch('report.json').then(r => r.json()),
-  fetch('history.jsonl').then(r => r.text()).catch(() => '')
-]).then(([data, historyText]) => {
+  fetch('history.jsonl').then(r => r.text()).catch(() => ''),
+  fetch('config.json').then(r => r.json()).catch(() => ({ caps: {} }))
+]).then(([data, historyText, config]) => {
+  __report = data;
+  __config = config;
   const history = historyText.trim().split('\n')
     .filter(l => l)
     .map(l => { try { return JSON.parse(l); } catch (_) { return null; } })
@@ -1420,6 +1702,71 @@ fetch('report.json').then(r => r.json()).then(data => {
     if (st.spark) setTimeout(() => makeSparkline(el, st.spark, st.sparkColor), 600);
   });
 
+  /* ── Tools row (Claude Code + Codex CLI + Cursor) ── */
+  const fmt = n => (n||0).toLocaleString();
+  const money = n => '$' + (n||0).toFixed(2);
+  const sources = data.sources || {};
+  const toolCards = [];
+
+  toolCards.push({
+    name: 'Claude Code',
+    color: '#e85d26',
+    primary: fmt(s.total_tokens) + ' tok',
+    secondary: data.total_sessions + ' sessions',
+    note: 'Local JSONL logs',
+  });
+
+  if (data.codex && data.codex.summary) {
+    const cs = data.codex.summary;
+    toolCards.push({
+      name: 'Codex CLI',
+      color: '#10b981',
+      primary: money(cs.total_cost),
+      secondary: fmt(cs.total_tokens) + ' tok • ' + cs.total_sessions + ' sessions',
+      note: 'Real spend (rollout JSONL)',
+    });
+  }
+
+  if (data.cursor && data.cursor.summary) {
+    const cs = data.cursor.summary;
+    toolCards.push({
+      name: 'Cursor',
+      color: '#6366f1',
+      primary: cs.total_composers + ' composers',
+      secondary: fmt(cs.total_messages) + ' messages',
+      note: 'Activity proxy — no token data',
+    });
+  }
+
+  if (toolCards.length % 2 === 1) {
+    const ccTok = s.total_tokens || 0;
+    const cxTok = (data.codex && data.codex.summary && data.codex.summary.total_tokens) || 0;
+    const cxCost = (data.codex && data.codex.summary && data.codex.summary.total_cost) || 0;
+    toolCards.push({
+      name: 'Combined',
+      color: '#e85d26',
+      primary: money(cxCost),
+      secondary: fmt(ccTok + cxTok) + ' tok all tools',
+      note: 'Sum across sources',
+    });
+  }
+  if (toolCards.length > 1) {
+    document.getElementById('tools-title').style.display = '';
+    document.getElementById('tools-row').innerHTML = toolCards.map(t => `
+      <div class="stat-shell">
+        <div class="stat-card">
+          <div class="stat-label">${t.name}</div>
+          <div class="stat-value" style="color:${t.color}">${t.primary}</div>
+          <div class="stat-sub">${t.secondary}</div>
+          <div class="stat-sub" style="opacity:0.55;font-size:11px;margin-top:4px">${t.note}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Render the Today row on initial load (live poll will update it every 10s)
+  renderToday();
+
   /* ── Waste cards with ring gauges ── */
   const wasteEfficiency = Math.max(0, 100 - w.idle_gap_pct_of_turns);
   const readEfficiency = Math.max(0, Math.round(100 - (w.redundant_file_reads / Math.max(s.total_tool_uses, 1)) * 100));
@@ -1446,6 +1793,13 @@ fetch('report.json').then(r => r.json()).then(data => {
       <div class="waste-stat">${w.idle_gap_pct_of_turns}%</div>
       <p>Turns after 5+ min idle gap that triggered expensive full-context rebuilds.</p>
     </div>
+    <div class="waste-card" style="position:relative">
+      <div class="ring-gauge" id="ring-avg"></div>
+      <div class="waste-icon">&#128202;</div>
+      <h4>Avg Tokens / Turn</h4>
+      <div class="waste-stat">${(s.avg_tokens_per_turn||0).toLocaleString()}</div>
+      <p>High per-turn averages signal bloated context. Target: under 8k per turn for efficient sessions.</p>
+    </div>
   `;
 
   // Render ring gauges (delayed for animation)
@@ -1453,6 +1807,8 @@ fetch('report.json').then(r => r.json()).then(data => {
     makeRingGauge(document.getElementById('ring-idle'), Math.min(w.idle_gap_pct_of_turns * 10, 100), '#e11d48');
     makeRingGauge(document.getElementById('ring-reads'), Math.min(readEfficiency, 100), '#d97706');
     makeRingGauge(document.getElementById('ring-cache'), wasteEfficiency, '#0d9488');
+    const avgEff = Math.max(0, Math.min(100, 100 - ((s.avg_tokens_per_turn - 8000) / 200)));
+    makeRingGauge(document.getElementById('ring-avg'), avgEff, '#6366f1');
   }, 500);
 
   /* ── Efficiency Score ── */
@@ -1700,17 +2056,76 @@ fetch('report.json').then(r => r.json()).then(data => {
     savings: '2-5K tokens per future session',
   });
 
-  document.getElementById('checklist').innerHTML = actions.map((a, i) => `
-    <div class="check-item" onclick="this.classList.toggle('done'); this.querySelector('.check-box').innerHTML = this.classList.contains('done') ? '&#10003;' : ''">
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+
+  document.getElementById('checklist').innerHTML = actions.map((a) => `
+    <div class="check-item">
       <div class="check-box"></div>
       <div>
-        <div style="font-weight:500">${a.text}</div>
-        <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">Saves: ${a.savings}</div>
-        ${a.command ? `<button class="action-btn" onclick="event.stopPropagation(); navigator.clipboard.writeText('${a.command.replace(/'/g, "\\'")}'); this.textContent='Copied!'; this.classList.add('copied'); setTimeout(()=>{this.textContent='${a.command.replace(/'/g, "\\'")}'; this.classList.remove('copied')}, 2000)">&#128203; ${a.command}</button>` : ''}
+        <div style="font-weight:500">${escapeHtml(a.text)}</div>
+        <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">Saves: ${escapeHtml(a.savings)}</div>
+        ${a.command ? `<button class="action-btn" data-copy="${escapeHtml(a.command)}">&#128203; ${escapeHtml(a.command)}</button>` : ''}
       </div>
       <span class="check-priority ${a.priority}">${a.priority}</span>
     </div>
   `).join('');
+
+  // Robust copy-to-clipboard with fallback for insecure contexts (http://dashboard.local).
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    // Fallback: hidden textarea + execCommand('copy') — works on plain http hosts.
+    return new Promise((resolve, reject) => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      try {
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy returned false'));
+      } catch (e) {
+        document.body.removeChild(ta);
+        reject(e);
+      }
+    });
+  }
+
+  // Event delegation: one listener handles all checklist clicks and copies.
+  document.getElementById('checklist').addEventListener('click', (e) => {
+    const btn = e.target.closest('.action-btn');
+    if (btn) {
+      e.stopPropagation();
+      const text = btn.dataset.copy;
+      const original = btn.innerHTML;
+      copyText(text).then(() => {
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.innerHTML = original;
+          btn.classList.remove('copied');
+        }, 1500);
+      }).catch((err) => {
+        console.warn('Copy failed:', err);
+        btn.textContent = '✗ Copy blocked';
+        setTimeout(() => { btn.innerHTML = original; }, 1500);
+      });
+      return;
+    }
+    const item = e.target.closest('.check-item');
+    if (item) {
+      item.classList.toggle('done');
+      item.querySelector('.check-box').innerHTML = item.classList.contains('done') ? '&#10003;' : '';
+    }
+  });
 
   /* ── Charts ── */
   const chartAnimation = { duration: 1400, easing: 'easeOutQuart' };
