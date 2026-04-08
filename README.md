@@ -25,6 +25,10 @@ Receipts grouped by vendor and category. Hero numbers up top show monthly spend,
 
 ![Costs](screenshots/costs.png)
 
+Dark mode:
+
+![Costs dark](screenshots/costs-dark.png)
+
 ### Native menu bar widget
 
 A frosted-glass macOS panel that lives in the menu bar. Shows your efficiency score, tokens today, cost today, Codex rate limits, and any active Claude Code sessions with live burn rate. Written in Swift with NSVisualEffectView, SF Rounded fonts, settings to hide sections you don't care about.
